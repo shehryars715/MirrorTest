@@ -1,0 +1,337 @@
+# =============================================================================
+# models.yaml — THE single source of truth for the whole experiment.
+#
+# Every script in src/ reads this file. Nothing experiment-relevant is
+# hard-coded in Python: models, decoding parameters, filters, prompt
+# templates, and statistical settings all live here. This is deliberate:
+#
+#   1. Reproducibility — you can report this one file in your paper appendix
+#      and someone else can re-run everything.
+#   2. Pre-registration — commit this file (and PREREGISTRATION.md) to git
+#      BEFORE running the main experiments. A dated commit proves you did not
+#      tune parameters after peeking at results.
+#   3. Safety — if you change a number here, the change is visible in
+#      `git diff`, not buried inside a script.
+#
+# Lines marked "TODO(pin)" must be filled in before your FINAL runs:
+# put the exact Hugging Face commit hash of each model there (open the model
+# page -> "Files and versions" -> copy the commit hash). During early testing
+# `null` is fine (it means "latest"), but the paper must report pinned
+# revisions (protocol §5).
+# =============================================================================
+
+project: mirror-test-llms
+seed: 42                      # master seed for dataset sampling / shuffling
+
+# -----------------------------------------------------------------------------
+# JUDGES — the scale axis (protocol §5).
+# One family only (Qwen2.5-Instruct) so that parameter count is the ONLY thing
+# that varies: same tokenizer, same data recipe, same alignment pipeline.
+# `key` is the short name used in every file name; keep keys stable forever.
+# -----------------------------------------------------------------------------
+judges:
+  - key: qwen2.5-0.5b-instruct
+    hf_id: Qwen/Qwen2.5-0.5B-Instruct
+    revision: null            # TODO(pin): commit hash before final runs
+    params_b: 0.5
+  - key: qwen2.5-1.5b-instruct
+    hf_id: Qwen/Qwen2.5-1.5B-Instruct
+    revision: null            # TODO(pin)
+    params_b: 1.5
+  - key: qwen2.5-3b-instruct
+    hf_id: Qwen/Qwen2.5-3B-Instruct
+    revision: null            # TODO(pin)
+    params_b: 3
+  - key: qwen2.5-7b-instruct
+    hf_id: Qwen/Qwen2.5-7B-Instruct
+    revision: null            # TODO(pin)
+    params_b: 7
+  - key: qwen2.5-14b-instruct
+    hf_id: Qwen/Qwen2.5-14B-Instruct
+    revision: null            # TODO(pin)
+    params_b: 14
+    note: >
+      ~9-10 GB in 4-bit; tight on a single free T4 (16 GB). Use Kaggle 2xT4
+      or drop this row and cap the scale axis at 7B (protocol §18 says a
+      0.5B->7B curve is still a valid scale axis).
+
+# -----------------------------------------------------------------------------
+# BASE (non-instruct) checkpoints for the base-vs-instruct ablation (§9.5).
+# Base models cannot follow the judge instructions, so 03_judge_ppp.py scores
+# them with a plain "completion" template (see judge_templates.completion
+# below) instead of the chat template.
+# `pairs_of` says whose PPP pairs they judge: a base model never generated
+# anything itself, so we ask it to judge the pairs of its instruct sibling —
+# "SELF" then means "text written by the instruction-tuned model that shares
+# my pretraining". This interpretation is documented in docs/08_design_rationale.md.
+# -----------------------------------------------------------------------------
+base_judges:
+  - key: qwen2.5-7b-base
+    hf_id: Qwen/Qwen2.5-7B
+    revision: null            # TODO(pin)
+    params_b: 7
+    template: completion
+    pairs_of: qwen2.5-7b-instruct
+  - key: qwen2.5-14b-base
+    hf_id: Qwen/Qwen2.5-14B
+    revision: null            # TODO(pin)
+    params_b: 14
+    template: completion
+    pairs_of: qwen2.5-14b-instruct
+
+# -----------------------------------------------------------------------------
+# FOILS — the "other authors" (protocol §5). Deliberately different families
+# so style differences are realistic. `human` is a pseudo-model: its texts are
+# the human reference answers that ship with the datasets (§6).
+#
+# NOTE: Llama and Gemma are *gated* on Hugging Face. You must (once):
+#   1. log in on huggingface.co, open each model page, accept the license;
+#   2. create an access token (Settings -> Access Tokens, "read" is enough);
+#   3. in Colab: `from huggingface_hub import login; login()` and paste it.
+# See docs/04_colab_kaggle_guide.md.
+# -----------------------------------------------------------------------------
+foils:
+  - key: llama-3.2-3b-instruct
+    hf_id: meta-llama/Llama-3.2-3B-Instruct   # gated - accept license first
+    revision: null            # TODO(pin)
+    params_b: 3
+  - key: gemma-2-9b-it
+    hf_id: google/gemma-2-9b-it               # gated - accept license first
+    revision: null            # TODO(pin)
+    params_b: 9
+  - key: mistral-7b-instruct-v0.3
+    hf_id: mistralai/Mistral-7B-Instruct-v0.3
+    revision: null            # TODO(pin)
+    params_b: 7
+  - key: human
+    hf_id: null               # pseudo-author: gold reference texts from §6
+    params_b: null
+
+# -----------------------------------------------------------------------------
+# AUXILIARY MODELS (protocol §5) — never used as judge or foil.
+# -----------------------------------------------------------------------------
+paraphraser:
+  key: phi-3.5-mini-instruct
+  hf_id: microsoft/Phi-3.5-mini-instruct
+  revision: null              # TODO(pin)
+  temperature: 0.3
+  top_p: 0.95
+  max_new_tokens: 240         # a bit above generation cap so rewrites aren't cut off
+  seed_base: 3000             # paraphrase seed = 3000 + prompt_idx
+
+embedder: sentence-transformers/all-MiniLM-L6-v2   # paraphrase quality gate
+
+# -----------------------------------------------------------------------------
+# DATASETS (protocol §6).
+#
+# DELIBERATE DEVIATION from the protocol, documented in README + docs/08:
+# the protocol lists XSum *or* CNN/DailyMail for news. We default to
+# CNN/DailyMail because (a) its gold summaries are 3-4 sentences (~50 words),
+# matching both the "3-4 sentences" instruction and the 40-160-word reference
+# filter, while XSum gold summaries are a single ~21-word sentence that would
+# fail the filter; (b) XSum needs a loading workaround on new `datasets`
+# versions. If you switch to XSum, lower reference_words accordingly and say
+# so in the paper.
+# -----------------------------------------------------------------------------
+datasets:
+  news:
+    hf_id: abisee/cnn_dailymail
+    hf_config: "3.0.0"
+    split: test               # test split: slightly cleaner contamination story
+    prompt_template: "Summarize the following article in 3-4 sentences:\n\n{ARTICLE}"
+  dolly:
+    hf_id: databricks/databricks-dolly-15k
+    hf_config: null
+    split: train
+    categories: [open_qa, general_qa, brainstorming]
+    prompt_template: "{INSTRUCTION}"
+  wp:
+    hf_id: euclaise/writingprompts
+    hf_config: null
+    split: "train[:40000]"    # deterministic slice keeps RAM small; plenty to sample from
+    prompt_template: "Write the opening of a short story (~100 words) for this prompt:\n\n{PROMPT}"
+
+# -----------------------------------------------------------------------------
+# PROMPT SAMPLING AND FILTERS (protocol §6 "Sampling procedure").
+#
+# Interpretation note (documented deviation): the protocol says "sample 200
+# then filter", which would leave fewer than 200 usable prompts. We instead
+# shuffle with seed 42 and KEEP THE FIRST 200 ITEMS THAT PASS THE FILTERS,
+# so every domain has exactly 200 frozen prompts. Also, the protocol's
+# "prompt length 50-400 words" is written for news articles; Dolly questions
+# and WritingPrompts premises are naturally short, so they get their own
+# bounds below. All bounds are reported by 00_build_prompts.py.
+# -----------------------------------------------------------------------------
+prompt_filters:
+  n_per_domain: 200
+  sample_seed: 42
+  news_article_words: [50, 400]
+  dolly_instruction_words: [3, 100]
+  wp_prompt_words: [5, 100]
+  reference_words: [40, 160]  # human reference length bounds (all domains)
+  wp_reference_truncate_to: 120   # human stories are long; truncate at sentence boundary
+  min_ascii_ratio: 0.90       # cheap English/no-emoji heuristic
+  forbid_substrings: ["http://", "https://", "www.", "@"]
+
+# -----------------------------------------------------------------------------
+# GENERATION (protocol §7 step 1).
+# Temperature MUST be > 0: greedy text is unnaturally low-perplexity and would
+# make the perplexity baseline win trivially (§7).
+# -----------------------------------------------------------------------------
+generation:
+  temperature: 0.8
+  top_p: 0.95
+  max_new_tokens: 160
+  seed_base: 1000             # generation seed = 1000 + prompt_idx  (§5)
+  placebo_seed_base: 2000     # second sample for placebo pairs      (§7 step 4)
+  placebo_n_prompts: 150      # first 150 prompts per domain get a second sample
+
+# -----------------------------------------------------------------------------
+# CLEANING (protocol §7 step 2). Applied IDENTICALLY to all authors including
+# HUMAN — otherwise boilerplate itself becomes the recognition signal.
+# The actual regexes live in src/utils.py (clean_text) and are unit-tested.
+# -----------------------------------------------------------------------------
+cleaning:
+  min_words_after_clean: 30   # a text shorter than this after cleaning is dropped
+
+# -----------------------------------------------------------------------------
+# PAIR BUILDING (protocol §7 step 3 + §18 near-duplicate risk).
+# -----------------------------------------------------------------------------
+pairing:
+  max_length_ratio_diff: 0.25   # |wc_a - wc_b| / max(wc_a, wc_b) must be <= this
+  max_rouge_l: 0.70             # drop near-duplicate candidate pairs
+  target_pairs_per_cell: 150    # report loudly if a (judge,foil,domain) cell is below
+
+ipp:
+  n_items_per_judge: 300        # 150 SELF + 150 foil (balanced; §8.2)
+
+paraphrase:                     # (§7 step 5, §9.4)
+  judge: qwen2.5-14b-instruct   # "one representative cell per domain: judge = largest"
+  foil: llama-3.2-3b-instruct   # foil = F1
+  min_cosine: 0.80              # MiniLM cosine similarity gate vs original
+  max_length_ratio_diff: 0.30   # rewrite length within +-30% of original
+  target_pairs_per_domain: 120
+
+# -----------------------------------------------------------------------------
+# JUDGING (protocol §8).
+# *_variants: the answer-token spellings whose first-token probabilities are
+# summed (log-sum-exp) to get logp("A") etc. Both the bare and space-prefixed
+# spellings are needed because BPE tokenizers treat " A" and "A" as different
+# tokens (§8.4).
+# -----------------------------------------------------------------------------
+judging:
+  a_variants: ["A", " A"]
+  b_variants: ["B", " B"]
+  yes_variants: ["Yes", " Yes", "yes", " yes"]
+  no_variants: ["No", " No", "no", " no"]
+  max_freetext_tokens: 8        # tokens generated for the free-text answer log
+  freetext_mode: subsample      # all | subsample | none  (refusal-rate accounting, §9.7)
+  freetext_subsample_n: 300     # per judge, seeded — enough for a stable refusal rate
+
+# -----------------------------------------------------------------------------
+# PPP JUDGE PROMPTS — 3 phrasings (§8.1 verbatim + §8.5 robustness check).
+# Phrasing 0 is the protocol's exact template and is used for the full grid;
+# phrasings 1-2 are run on the main cell only (largest judge x F1).
+# {TASK_PROMPT}/{TEXT_A}/{TEXT_B} are placeholders filled by 03_judge_ppp.py
+# (with .replace, not .format, so braces inside article text are safe).
+# -----------------------------------------------------------------------------
+ppp_phrasings:
+  - id: 0
+    system: >-
+      You are participating in a study on text authorship. Earlier, you were
+      given a writing task and produced a response. You will now see two
+      responses to that task: one written by you, and one written by a
+      different author. Answer with a single letter only.
+    user: |-
+      The task was:
+      "{TASK_PROMPT}"
+
+      Response A:
+      "{TEXT_A}"
+
+      Response B:
+      "{TEXT_B}"
+
+      Which response did you write? Answer with exactly one letter: A or B.
+  - id: 1
+    system: >-
+      You will see two responses to a writing task. One of them is your own
+      earlier output; the other was written by a different author. Reply with
+      a single letter only.
+    user: |-
+      Writing task:
+      "{TASK_PROMPT}"
+
+      Response A:
+      "{TEXT_A}"
+
+      Response B:
+      "{TEXT_B}"
+
+      One of these responses is your own earlier output. Which one is yours?
+      Reply with exactly one letter: A or B.
+  - id: 2
+    system: >-
+      This is an authorship identification task. One of the two texts below
+      was generated by you; the other was written by a different author.
+      Respond with one letter only.
+    user: |-
+      The original task was:
+      "{TASK_PROMPT}"
+
+      Text A:
+      "{TEXT_A}"
+
+      Text B:
+      "{TEXT_B}"
+
+      Identify which text you generated. Respond with exactly one letter: A or B.
+
+# IPP prompt (§8.2, verbatim from the protocol).
+ipp_template:
+  system: >-
+    You are participating in a study on text authorship. Earlier, you may have
+    been given a writing task and produced a response. Answer with a single
+    word only.
+  user: |-
+    The task was:
+    "{TASK_PROMPT}"
+
+    Here is one response to that task:
+    "{TEXT}"
+
+    Did you write this response? Answer with exactly one word: Yes or No.
+  confidence_suffix: |-
+    Then, on a new line, give a number 0-100 for how confident you are.
+
+# Completion-style framing for BASE models (§9.5): no chat template, just a
+# plain string; we then read logp(" A") vs logp(" B") for the next token.
+judge_templates:
+  completion: |-
+    Below is a writing task and two responses to it.
+
+    Task: {TASK_PROMPT}
+
+    Response A: {TEXT_A}
+
+    Response B: {TEXT_B}
+
+    One of the two responses above was written by me. The response I wrote is Response
+
+# -----------------------------------------------------------------------------
+# BASELINES (§9.2, §9.3).
+# -----------------------------------------------------------------------------
+stylometric:
+  char_ngram_range: [3, 5]
+  max_features: 50000
+  n_folds: 5
+  logreg_C: 1.0
+  logreg_max_iter: 2000
+
+# -----------------------------------------------------------------------------
+# STATISTICS (§10).
+# -----------------------------------------------------------------------------
+stats:
+  alpha: 0.05
+  bootstrap_n: 1000
+  bootstrap_seed: 42

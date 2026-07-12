@@ -1,0 +1,45 @@
+# ============================================================================
+# Requirements for the Mirror Test pipeline (protocol §15 — all free).
+#
+# TWO INSTALL PROFILES:
+#
+# 1. LAPTOP (CPU-only scripts: 00 prompts*, 02 pairs, 05 stylometric, 06 stats,
+#    and the unit tests). *00 needs `datasets` + internet.
+#       pip install pyyaml datasets scikit-learn matplotlib pytest
+#
+# 2. COLAB / KAGGLE (GPU scripts: 01, 02b, 03, 04, 05-perplexity).
+#    Colab already ships torch; you only need:
+#       pip install -U transformers accelerate bitsandbytes datasets \
+#                      sentence-transformers pyyaml
+#
+# NOTE for Windows laptops: bitsandbytes (4-bit quantisation) effectively
+# requires an NVIDIA GPU + Linux/Colab. Do NOT fight it locally — the GPU
+# scripts are meant for Colab/Kaggle (docs/04_colab_kaggle_guide.md), and
+# they fall back to fp16/fp32 automatically if bitsandbytes is missing.
+# ============================================================================
+
+# --- core config / data plumbing (needed everywhere) ---
+pyyaml>=6.0
+
+# --- GPU inference stack (Colab/Kaggle) ---
+torch>=2.1
+transformers>=4.44
+accelerate>=0.30
+bitsandbytes>=0.43        # 4-bit NF4 quantisation (protocol §5)
+sentence-transformers>=3.0 # paraphrase quality gate (§7 step 5)
+
+# --- datasets (00_build_prompts.py) ---
+datasets>=2.19
+
+# --- baselines & analysis ---
+scikit-learn>=1.4         # TF-IDF + logistic regression (§9.2)
+matplotlib>=3.8           # figures (§15); stats themselves are stdlib-only
+
+# --- optional cross-checks (the protocol lists these; the pipeline's own
+#     statistics are implemented from scratch in src/stats_utils.py) ---
+scipy>=1.11
+numpy>=1.26
+pandas>=2.0
+
+# --- development ---
+pytest>=8.0

@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# What is COMMITTED vs IGNORED, and why (reproducibility policy):
+#
+#  COMMIT: configs/, src/, docs/, paper/, tests/, PREREGISTRATION.md,
+#          data/prompts/            <- the FROZEN prompt sets + checksums
+#          results/tables/, results/figures/   <- small, and reviewers want them
+#          data/pairs/pairs_report.json
+#
+#  IGNORE: model weights caches, large intermediate generations (regenerable
+#          from seeds), virtualenvs, notebook checkpoints.
+#
+#  data/generations/ and results/judgments/ are BORDERLINE: they are the raw
+#  data the protocol says to release (§10 "All raw judgments released as
+#  JSONL"). They are small enough for git (a few MB) — so they are committed
+#  by default. If your repo grows too big, move them to a GitHub Release or
+#  Hugging Face dataset and note the link in README.
+# ---------------------------------------------------------------------------
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Hugging Face / torch caches (never commit weights)
+.cache/
+hf_cache/
+
+# Notebook noise
+.ipynb_checkpoints/
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+paper/main.pdf
+
+# Scratch
+scratch/
+*.tmp
