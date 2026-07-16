@@ -103,8 +103,10 @@ Reproducing Figure 1 from raw judgments is one command: `python src/06_stats.py`
 | `src/utils.py` | cleaning, ROUGE-L, JSONL checkpointing, log-prob helpers | §7, §8.4 |
 | `src/kaggle_setup.py` | Kaggle/Colab bootstrap: GPUs, HF auth from secrets, writable paths, session resume | §15 |
 | `tests/` | 27 unit tests incl. reproduction of the protocol's power claims | — |
-| `notebooks/colab_pipeline.ipynb` | ready-to-run Colab driver for the GPU phases | §15 |
-| `notebooks/kaggle_pipeline.ipynb` | Kaggle (2×T4) driver — secrets, save-version checkpointing | §15 |
+| `kaggle_run_all.ipynb` | **self-driving Kaggle runner** — carries the whole pipeline inside itself, auto-resumes across sessions, outputs `mirror_bundle.zip` (regenerate with `tools/build_kaggle_notebook.py` after code changes) | §15 |
+| `tools/ingest_bundle.py` | absorb a downloaded `mirror_bundle.zip` back into this repo | §15 |
+| `notebooks/colab_pipeline.ipynb` | manual Colab driver for the GPU phases | §15 |
+| `notebooks/kaggle_pipeline.ipynb` | manual Kaggle (2×T4) driver — secrets, save-version checkpointing | §15 |
 | `paper/` | full-prose template paper (`TEMPLATE_PAPER.md`) + ACL LaTeX skeleton + references.bib | §12 |
 | `docs/` | beginner → advanced guides (start at `00_START_HERE.md`) | all |
 

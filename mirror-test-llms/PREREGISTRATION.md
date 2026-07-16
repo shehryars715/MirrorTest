@@ -7,9 +7,9 @@
 > the evidence that analyses were planned, not fished for. Being wrong
 > publicly is good science (§11).
 
-**Author:** <your name>
-**Institution:** NUST, BS Data Science (2nd year)
-**Date frozen:** <YYYY-MM-DD — the date you commit this>
+**Author:** <Shehryar>
+**Institution:** NUST, BS Data Science 
+**Date frozen:** <2026-07-16>
 **Config hash:** run `git log -1 --format=%H -- configs/models.yaml` after
 committing and paste the commit hash here: `<hash>`
 

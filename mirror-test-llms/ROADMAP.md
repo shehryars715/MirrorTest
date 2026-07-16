@@ -8,6 +8,16 @@ never Phases 4–7 (controls).
 
 Legend: 💻 = your Windows laptop (CPU) · ☁️ = Colab T4 · 🟦 = Kaggle 2×T4
 
+> **Zero-effort GPU route (recommended):** everything marked ☁️/🟦 in
+> Phases 2–8 can be replaced by repeatedly running **`kaggle_run_all.ipynb`**
+> (one copy sits next to this repo in `Desktop/Mirror/`). Upload it to
+> Kaggle once, click *Save Version → Save & Run All*, and it does as much of
+> the remaining GPU work as fits, then produces `mirror_bundle.zip` +
+> `SESSION_REPORT.md`. Put those in `Desktop/Mirror/`, tell Claude, repeat
+> until the report says ALL GPU WORK COMPLETE (~3–4 runs). Claude ingests
+> each bundle with `python tools/ingest_bundle.py` and handles all 💻 analysis.
+> The manual commands below remain valid if you prefer control.
+
 ---
 
 ## Phase 0 — Setup (today, ~2 hours, 💻)

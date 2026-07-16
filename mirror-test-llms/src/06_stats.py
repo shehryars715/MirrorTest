@@ -271,6 +271,7 @@ def write_csv(path: Path, rows: list[dict]) -> None:
 def write_md(path: Path, rows: list[dict], title: str) -> None:
     if not rows:
         return
+    path.parent.mkdir(parents=True, exist_ok=True)
     cols = list(rows[0].keys())
     lines = [f"# {title}", "", "| " + " | ".join(cols) + " |",
              "|" + "|".join(["---"] * len(cols)) + "|"]

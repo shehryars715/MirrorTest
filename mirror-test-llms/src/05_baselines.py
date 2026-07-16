@@ -195,6 +195,7 @@ def run_transfer(judge: str, foil: str, domains: list[str], cfg: dict) -> dict:
 
 
 def cmd_stylometric(args, cfg) -> None:
+    BASELINES_DIR.mkdir(parents=True, exist_ok=True)
     files = sorted(PAIRS_DIR.glob("ppp__*.jsonl"))
     if args.judge:
         files = [f for f in files if f.name.split("__")[1] == args.judge]

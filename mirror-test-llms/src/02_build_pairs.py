@@ -231,6 +231,7 @@ def main() -> None:
         report["ipp"][judge] = {"total": len(items), "self": n_self, "foil": len(items) - n_self}
         print(f"[ipp] {judge:26s} items={len(items)} (self={n_self})")
 
+    PAIRS_DIR.mkdir(parents=True, exist_ok=True)
     with open(PAIRS_DIR / "pairs_report.json", "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
     print(f"[done] report -> {PAIRS_DIR / 'pairs_report.json'}")
