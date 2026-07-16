@@ -27,12 +27,16 @@ SKIP_PREFIXES = ("results/tables", "results/figures")
 
 
 def find_default_bundle() -> Path:
-    hits = sorted(REPO.parent.glob("mirror_bundle*.zip"),
-                  key=lambda p: p.stat().st_mtime, reverse=True)
+    """Newest bundle in Desktop/Mirror or Desktop/Mirror/Output (the user
+    drops Kaggle downloads in either place)."""
+    hits = sorted(
+        list(REPO.parent.glob("mirror_bundle*.zip"))
+        + list((REPO.parent / "Output").glob("mirror_bundle*.zip")),
+        key=lambda p: p.stat().st_mtime, reverse=True)
     if not hits:
-        sys.exit(f"[ingest] no mirror_bundle*.zip found in {REPO.parent} - "
-                 "download it from the Kaggle version's Output tab first, "
-                 "or pass a path explicitly")
+        sys.exit(f"[ingest] no mirror_bundle*.zip found in {REPO.parent} or "
+                 f"{REPO.parent / 'Output'} - download it from the Kaggle "
+                 "version's Output tab first, or pass a path explicitly")
     return hits[0]
 
 

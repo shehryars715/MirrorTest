@@ -159,25 +159,36 @@ def T(tid, cmd, est_min, done_fn, after=(), gpu=True, gated=False):
 
 PY = [sys.executable]
 TASKS = [T("prompts", PY + ["src/00_build_prompts.py"], 12, prompts_done, gpu=False)]
-GEN_EST = {"qwen2.5-0.5b-instruct": 35, "qwen2.5-1.5b-instruct": 50,
-           "qwen2.5-3b-instruct": 70, "qwen2.5-7b-instruct": 130,
-           "qwen2.5-14b-instruct": 170, "llama-3.2-3b-instruct": 70,
-           "gemma-2-9b-it": 130, "mistral-7b-instruct-v0.3": 100}
-for m in JUDGES:
-    TASKS.append(T(f"gen:{m}", PY + ["src/01_generate.py", "--models", m, "--placebo"],
-                   GEN_EST.get(m, 90), lambda m=m: gen_done(m, True), after=["prompts"]))
-for m in GEN_FOILS:
-    TASKS.append(T(f"gen:{m}", PY + ["src/01_generate.py", "--models", m],
-                   GEN_EST.get(m, 90), lambda m=m: gen_done(m, False),
+# Time estimates RECALIBRATED from session-1 measurements on Kaggle T4
+# (0.5B generation measured 144 min, 1.5B 206 min - about 4x the original
+# guesses; larger models extrapolated at the measured tokens/sec trend).
+# Foils generate 600 items (no placebo twin), judges 1050.
+GEN_EST = {"qwen2.5-0.5b-instruct": 150, "qwen2.5-1.5b-instruct": 210,
+           "qwen2.5-3b-instruct": 280, "qwen2.5-7b-instruct": 450,
+           "qwen2.5-14b-instruct": 900, "llama-3.2-3b-instruct": 170,
+           "gemma-2-9b-it": 380, "mistral-7b-instruct-v0.3": 300}
+# Generation ORDER: small judges -> foils -> big (>=10B) judges LAST.
+# Rationale: the 14B is by far the most expensive model; running it last
+# means the protocol-sanctioned fallback (cap the scale axis at 7B, §18)
+# stays available at zero sunk cost if the schedule slips.
+_params = {m["key"]: (m.get("params_b") or 0)
+           for m in CFG["judges"] + CFG["foils"] if m.get("hf_id")}
+GEN_PLAN = ([(m, True) for m in JUDGES if _params.get(m, 0) < 10]
+            + [(m, False) for m in GEN_FOILS]
+            + [(m, True) for m in JUDGES if _params.get(m, 0) >= 10])
+for m, placebo in GEN_PLAN:
+    cmd = PY + ["src/01_generate.py", "--models", m] + (["--placebo"] if placebo else [])
+    TASKS.append(T(f"gen:{m}", cmd, GEN_EST.get(m, 200),
+                   lambda m=m, p=placebo: gen_done(m, p),
                    after=["prompts"], gated=m in GATED))
 ALL_GEN = [t["id"] for t in TASKS if t["id"].startswith("gen:")]
-TASKS.append(T("pairs", PY + ["src/02_build_pairs.py"], 6, pairs_done,
+TASKS.append(T("pairs", PY + ["src/02_build_pairs.py"], 10, pairs_done,
                after=ALL_GEN, gpu=False))
-TASKS.append(T("paraphrase", PY + ["src/02b_paraphrase.py"], 70, paraphrase_done,
+TASKS.append(T("paraphrase", PY + ["src/02b_paraphrase.py"], 200, paraphrase_done,
                after=["pairs"]))
-JUDGE_EST = {"qwen2.5-0.5b-instruct": 35, "qwen2.5-1.5b-instruct": 45,
-             "qwen2.5-3b-instruct": 60, "qwen2.5-7b-instruct": 95,
-             "qwen2.5-14b-instruct": 130}
+JUDGE_EST = {"qwen2.5-0.5b-instruct": 150, "qwen2.5-1.5b-instruct": 180,
+             "qwen2.5-3b-instruct": 240, "qwen2.5-7b-instruct": 360,
+             "qwen2.5-14b-instruct": 540}
 for j in JUDGES:
     TASKS.append(T(f"ppp:{j}", PY + ["src/03_judge_ppp.py", "--judge", j,
                                      "--include-placebo"],
@@ -185,10 +196,10 @@ for j in JUDGES:
 TASKS.append(T("main-cell", PY + ["src/03_judge_ppp.py", "--judge", PARA_JUDGE,
                                   "--foils", PARA_FOIL, "--phrasings", "0", "1", "2",
                                   "--include-paraphrase"],
-               75, main_cell_done, after=["paraphrase", f"ppp:{PARA_JUDGE}"]))
+               180, main_cell_done, after=["paraphrase", f"ppp:{PARA_JUDGE}"]))
 for j in JUDGES:
     TASKS.append(T(f"ipp:{j}", PY + ["src/04_judge_ipp.py", "--judge", j],
-                   15, lambda j=j: ipp_done(j), after=["pairs"]))
+                   30, lambda j=j: ipp_done(j), after=["pairs"]))
 for j in BASE_JUDGES:
     TASKS.append(T(f"ppp:{j}", PY + ["src/03_judge_ppp.py", "--judge", j],
                    90, lambda j=j: ppp_done(j, False), after=["pairs"]))
@@ -196,12 +207,12 @@ for j in JUDGES:
     para = j == PARA_JUDGE
     cmd = PY + ["src/05_baselines.py", "perplexity", "--judge", j] + \
         (["--include-paraphrase"] if para else [])
-    TASKS.append(T(f"ppl:{j}", cmd, 35, lambda j=j, p=para: ppl_done(j, p),
+    TASKS.append(T(f"ppl:{j}", cmd, 90, lambda j=j, p=para: ppl_done(j, p),
                    after=(["paraphrase"] if para else ["pairs"])))
 for j in BASE_JUDGES:
     TASKS.append(T(f"ppl:{j}", PY + ["src/05_baselines.py", "perplexity", "--judge", j],
-                   35, lambda j=j: ppl_done(j, False), after=["pairs"]))
-TASKS.append(T("stylometric", PY + ["src/05_baselines.py", "stylometric"], 8,
+                   90, lambda j=j: ppl_done(j, False), after=["pairs"]))
+TASKS.append(T("stylometric", PY + ["src/05_baselines.py", "stylometric"], 15,
                stylo_done, after=["pairs"], gpu=False))
 
 # ------------------------------ run loop ------------------------------------

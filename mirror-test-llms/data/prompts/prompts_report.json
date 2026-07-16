@@ -1,0 +1,27 @@
+{
+  "built_at": "2026-07-16T08:39:58",
+  "n_per_domain": 200,
+  "domains": {
+    "news": {
+      "scanned": 378,
+      "kept": 200,
+      "ref_length": 175,
+      "shared_filters": 3,
+      "dup_prompt": 0
+    },
+    "dolly": {
+      "scanned": 454,
+      "kept": 200,
+      "ref_length": 254,
+      "shared_filters": 0,
+      "dup_prompt": 0
+    },
+    "wp": {
+      "scanned": 204,
+      "kept": 200,
+      "ref_length": 1,
+      "shared_filters": 3,
+      "dup_prompt": 0
+    }
+  }
+}
