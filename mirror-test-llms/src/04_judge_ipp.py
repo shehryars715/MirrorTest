@@ -50,7 +50,7 @@ from utils import (  # noqa: E402
     JUDGMENTS_DIR, PAIRS_DIR, append_jsonl, build_chat_text,
     candidate_token_ids, classify_freetext, existing_ids, fill_template,
     first_token_logprobs, greedy_generate, load_config,
-    load_model_and_tokenizer, model_index, now_iso, read_jsonl,
+    load_model_and_tokenizer, model_index, now_iso, progress_iter, read_jsonl,
 )
 
 
@@ -107,7 +107,7 @@ def main() -> None:
     ft_rng = _random.Random(cfg["seed"])
 
     n_new = 0
-    for item in items:
+    for item in progress_iter(items, label=f"ipp {args.judge}"):
         if item["item_id"] in done:
             continue
         user = fill_template(tmpl["user"], {"TASK_PROMPT": item["task_prompt"],
@@ -149,8 +149,6 @@ def main() -> None:
         })
         done.add(item["item_id"])
         n_new += 1
-        if n_new % 50 == 0:
-            print(f"  {n_new} items done", flush=True)
 
     print(f"[done] {n_new} new items -> {out_path}")
     print("NEXT: src/05_baselines.py (stylometric on CPU, perplexity on GPU).")

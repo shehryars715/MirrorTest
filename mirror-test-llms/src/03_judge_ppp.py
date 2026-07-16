@@ -71,7 +71,7 @@ from utils import (  # noqa: E402
     JUDGMENTS_DIR, PAIRS_DIR, append_jsonl, build_chat_text,
     candidate_token_ids, classify_freetext, existing_ids, fill_template,
     first_token_logprobs, greedy_generate, load_config,
-    load_model_and_tokenizer, model_index, now_iso, read_jsonl,
+    load_model_and_tokenizer, model_index, now_iso, progress_iter, read_jsonl,
 )
 
 
@@ -153,7 +153,7 @@ def main() -> None:
         cond = condition_of(path)
         print(f"[judge] {path.name}: {len(pairs)} pairs, condition={cond}")
 
-        for pair in pairs:
+        for pair in progress_iter(pairs, label=f"judge {args.judge} {path.stem}"):
             for ph_id in args.phrasings:
                 ph = phrasings[ph_id]
                 for order in ("self_A", "self_B"):
@@ -213,8 +213,6 @@ def main() -> None:
                     })
                     done.add(run_id)
                     total_new += 1
-                    if total_new % 100 == 0:
-                        print(f"  {total_new} runs done", flush=True)
 
     print(f"[done] {total_new} new runs -> {out_path}")
     print("NEXT: repeat for the other judges, then src/04_judge_ipp.py and "

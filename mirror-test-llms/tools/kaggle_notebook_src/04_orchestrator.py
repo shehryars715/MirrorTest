@@ -8,7 +8,7 @@
 # and instantly skips finished items. A wrong "not done" verdict just costs
 # one model-load; a wrong "done" verdict is prevented by checking counts.
 
-import json, subprocess, sys, time
+import json, queue, subprocess, sys, threading, time
 from collections import deque
 from pathlib import Path
 
@@ -206,24 +206,66 @@ TASKS.append(T("stylometric", PY + ["src/05_baselines.py", "stylometric"], 8,
 
 # ------------------------------ run loop ------------------------------------
 STATUS: dict = {}
+HEARTBEAT_S = 60      # print a liveness line after this many silent seconds
+
+def clock() -> str:
+    """Session clock, e.g. [0:47] = 47 min since the session started."""
+    el = int(time.monotonic() - T0)
+    return f"[{el // 3600}:{el % 3600 // 60:02d}]"
 
 def save_state():
     STATE_PATH.write_text(json.dumps(
         {"build": NOTEBOOK_BUILD, "budget_hours": BUDGET_HOURS, "tasks": STATUS},
         indent=2), encoding="utf-8")
 
-def run_task(t) -> str:
-    tail = deque(maxlen=40)
-    print(f"\n===== RUN {t['id']}  (est ~{t['est_min']} min, "
-          f"{hours_left():.1f} h left) =====", flush=True)
+def session_progress() -> str:
+    c = {}
+    for v in STATUS.values():
+        c[v["status"]] = c.get(v["status"], 0) + 1
+    parts = " ".join(f"{k}:{v}" for k, v in sorted(c.items()))
+    return f"{parts} | {hours_left():.1f} h budget left"
+
+def run_task(t, seq: int, n_planned: int) -> str:
+    """Run one pipeline script as a subprocess, streaming its output live.
+    A reader thread feeds a queue so that even when the task is silent
+    (model downloads / weight loading), a heartbeat line proves the session
+    is alive and shows for how long it has been quiet."""
+    tail = deque(maxlen=60)
+    print(f"\n{clock()} ===== TASK {seq}/{n_planned}: {t['id']} "
+          f"(est ~{t['est_min']} min | {hours_left():.1f} h left) =====",
+          flush=True)
+    print(f"{clock()} $ {' '.join(t['cmd'])}", flush=True)
+    start = time.monotonic()
     proc = subprocess.Popen(t["cmd"], cwd=REPO_DIR, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, text=True, bufsize=1)
-    killed = False
-    for line in proc.stdout:
-        print(line, end="", flush=True)
-        tail.append(line.rstrip())
+    q: queue.Queue = queue.Queue()
+
+    def _reader():
+        for ln in proc.stdout:
+            q.put(ln)
+        q.put(None)
+
+    threading.Thread(target=_reader, daemon=True).start()
+    killed, eof = False, False
+    last_output = time.monotonic()
+    while not eof:
+        try:
+            ln = q.get(timeout=HEARTBEAT_S)
+        except queue.Empty:
+            quiet = time.monotonic() - last_output
+            print(f"{clock()} [heartbeat] {t['id']} running "
+                  f"{(time.monotonic() - start) / 60:.0f} min, no output for "
+                  f"{quiet / 60:.0f} min (downloads/loading can be silent)",
+                  flush=True)
+        else:
+            if ln is None:
+                eof = True
+            else:
+                print(ln, end="", flush=True)
+                tail.append(ln.rstrip())
+                last_output = time.monotonic()
         if hours_left() <= 0 and not killed:
-            print(f"\n[budget] time is up - pausing {t['id']} "
+            print(f"\n{clock()} [budget] time is up - pausing {t['id']} "
                   "(it resumes automatically next session)", flush=True)
             proc.terminate()
             killed = True
@@ -238,39 +280,58 @@ def run_task(t) -> str:
         return "failed"
     return "ran" if t["done_fn"]() else "partial"
 
-print(f"{'TASK':<34}{'STATE':<12}note")
+# ---- status board + session plan --------------------------------------------
+print(f"{clock()} evaluating what is already done ...", flush=True)
 runnable = []
+print(f"\n{'TASK':<34}{'STATE':<10}{'EST':>6}")
 for t in TASKS:
     if t["done_fn"]():
         STATUS[t["id"]] = {"status": "done", "note": "already complete"}
     else:
         STATUS[t["id"]] = {"status": "todo", "note": ""}
         runnable.append(t)
-    print(f"{t['id']:<34}{STATUS[t['id']]['status']:<12}"
-          f"{STATUS[t['id']]['note']}")
+    print(f"{t['id']:<34}{STATUS[t['id']]['status']:<10}"
+          f"{t['est_min']:>4}m", flush=True)
+todo_min = sum(t["est_min"] for t in runnable)
+print(f"\n{clock()} plan: {len(TASKS) - len(runnable)}/{len(TASKS)} tasks "
+      f"already done; ~{todo_min / 60:.1f} h of work remains; this session's "
+      f"budget is {BUDGET_HOURS} h -> expect to run "
+      f"~{min(len(runnable), max(1, round(len(runnable) * BUDGET_HOURS * 60 / max(todo_min, 1))))} "
+      f"of the {len(runnable)} remaining tasks.", flush=True)
 save_state()
 
+seq = 0
 for t in runnable:
     st = STATUS[t["id"]]
     deps = [d for d in t["after"] if STATUS.get(d, {}).get("status") not in
             ("done", "ran")]
     if deps:
         st.update(status="blocked", note=f"waiting on: {', '.join(deps)}")
+        print(f"{clock()} [skip] {t['id']}: blocked by {', '.join(deps)}", flush=True)
     elif t["gpu"] and not HAVE_GPU:
         st.update(status="skipped", note="no GPU in this session")
+        print(f"{clock()} [skip] {t['id']}: no GPU", flush=True)
     elif t["gated"] and not HAVE_HF_TOKEN:
         st.update(status="skipped",
                   note="needs HF_TOKEN secret + accepted license")
+        print(f"{clock()} [skip] {t['id']}: needs HF_TOKEN secret", flush=True)
     elif hours_left() <= 0:
         st.update(status="deferred", note="session budget spent")
+        print(f"{clock()} [defer] {t['id']}: budget spent", flush=True)
     elif DRY_RUN:
         st.update(status="would-run", note=f"~{t['est_min']} min")
+        print(f"{clock()} [dry-run] would run {t['id']} (~{t['est_min']} min)",
+              flush=True)
     else:
+        seq += 1
         start = time.monotonic()
-        outcome = run_task(t)
+        outcome = run_task(t, seq, len(runnable))
         mins = (time.monotonic() - start) / 60
         st.update(status=outcome, note=f"{mins:.0f} min")
-        print(f"[task] {t['id']} -> {outcome} ({mins:.0f} min)", flush=True)
+        print(f"{clock()} [task] {t['id']} -> {outcome.upper()} "
+              f"({mins:.0f} min vs est {t['est_min']})", flush=True)
+        print(f"{clock()} [session] {session_progress()}", flush=True)
     save_state()
 
-print("\n[orchestrator] pass complete - finalize cell writes the report.")
+print(f"\n{clock()} [orchestrator] pass complete - {session_progress()}")
+print("finalize cell writes the report next.", flush=True)

@@ -227,6 +227,26 @@ def test_n_words():
     assert n_words("Hello, world! It's 2 words-ish.") == 5
 
 
+def test_progress_iter_yields_everything_and_reports(capsys):
+    """The Kaggle-friendly progress logger must pass items through untouched
+    and emit plain newline progress lines (start, per-tick, final)."""
+    from utils import progress_iter
+
+    out = list(progress_iter(range(5), label="unit", every_s=0.0))
+    assert out == [0, 1, 2, 3, 4]
+    text = capsys.readouterr().out
+    assert "[unit] starting: 5 items" in text
+    assert "5/5 (100%)" in text
+    assert "\r" not in text  # line-based on purpose (survives log pipes)
+
+    # breaking out early still prints a final line (via the finally block)
+    for x in progress_iter(range(100), label="brk", every_s=999):
+        if x == 2:
+            break
+    text = capsys.readouterr().out
+    assert "[brk] 3/100" in text
+
+
 # ---------------------------------------------------------------------------
 # Kaggle compatibility: MIRROR_ROOT redirects the data/results tree
 # ---------------------------------------------------------------------------

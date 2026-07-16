@@ -39,6 +39,7 @@ import os
 import random
 import re
 import sys
+import time
 import hashlib
 import datetime as _dt
 from pathlib import Path
@@ -129,6 +130,65 @@ def sha256_file(path: str | os.PathLike) -> str:
 
 def now_iso() -> str:
     return _dt.datetime.now().isoformat(timespec="seconds")
+
+
+def fmt_duration(seconds: float) -> str:
+    """3661.0 -> '1:01:01'; 95.0 -> '1:35'."""
+    s = max(0, int(seconds))
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    return f"{h}:{m:02d}:{sec:02d}" if h else f"{m}:{sec:02d}"
+
+
+def progress_iter(items, total: int | None = None, label: str = "",
+                  every_s: float = 15.0):
+    """Wrap a loop with LINE-BASED progress logging (count, %, rate, ETA).
+
+    Why not tqdm? Its carriage-return bars are invisible when output is
+    line-buffered — which is exactly how Kaggle batch logs and the run-all
+    notebook's orchestrator read these scripts. Plain newline-terminated
+    lines every ~15 s show up live everywhere:
+
+        [gen qwen2.5-7b-instruct/news] 120/600 (20%) | 3.1 it/s | elapsed 0:39 | ETA 2:35
+
+    Also prints a start line and a final line (even if the loop is broken
+    out of or the process is being terminated mid-way).
+    """
+    if total is None:
+        try:
+            total = len(items)  # type: ignore[arg-type]
+        except TypeError:
+            total = None
+    tag = f"[{label}] " if label else ""
+    t0 = time.monotonic()
+    last = t0
+    count = 0
+    printed_final = False
+    if total:
+        print(f"{tag}starting: {total} items", flush=True)
+
+    def line() -> str:
+        elapsed = time.monotonic() - t0
+        rate = count / elapsed if elapsed > 0 else 0.0
+        if total and rate > 0:
+            eta = fmt_duration((total - count) / rate)
+            return (f"{tag}{count}/{total} ({100 * count / total:.0f}%) | "
+                    f"{rate:.2f} it/s | elapsed {fmt_duration(elapsed)} | ETA {eta}")
+        return f"{tag}{count} items | {rate:.2f} it/s | elapsed {fmt_duration(elapsed)}"
+
+    try:
+        for item in items:
+            count += 1
+            yield item
+            now = time.monotonic()
+            if now - last >= every_s or (total is not None and count == total):
+                print(line(), flush=True)
+                last = now
+                if total is not None and count == total:
+                    printed_final = True
+    finally:
+        if not printed_final:
+            print(line(), flush=True)
 
 
 # ---------------------------------------------------------------------------
@@ -498,9 +558,13 @@ def load_model_and_tokenizer(hf_id: str, revision: str | None = None, four_bit: 
         kwargs["torch_dtype"] = torch.float32
         mode = "float32 on CPU (no GPU found - this will be SLOW)"
 
-    print(f"[load] {hf_id} (revision={revision or 'latest'}) as {mode}")
+    print(f"[load] {hf_id} (revision={revision or 'latest'}) as {mode} - "
+          "first use downloads the weights; this can be silent for several "
+          "minutes", flush=True)
+    t0 = time.monotonic()
     model = AutoModelForCausalLM.from_pretrained(hf_id, **kwargs)
     model.eval()
+    print(f"[load] model ready in {fmt_duration(time.monotonic() - t0)}", flush=True)
     tok = AutoTokenizer.from_pretrained(hf_id, revision=revision)
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token

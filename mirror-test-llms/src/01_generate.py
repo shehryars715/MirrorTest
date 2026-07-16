@@ -62,7 +62,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from utils import (  # noqa: E402
     DOMAINS, GENERATIONS_DIR, PROMPTS_DIR, append_jsonl, build_chat_text,
     existing_ids, load_config, load_model_and_tokenizer, model_index, n_words,
-    now_iso, read_jsonl, resolved_revision, sampled_generate,
+    now_iso, progress_iter, read_jsonl, resolved_revision, sampled_generate,
 )
 
 
@@ -103,7 +103,7 @@ def generate_for_model(model_key: str, domains: list[str], cfg: dict,
         print(f"[gen] {model_key} / {domain}: {len(todo)} to generate "
               f"({len(jobs) - len(todo)} already done)")
 
-        for i, (p, tag, seed_base) in enumerate(todo, 1):
+        for p, tag, seed_base in progress_iter(todo, label=f"gen {model_key}/{domain}"):
             seed = seed_base + p["prompt_idx"]
             prompt_text = build_chat_text(tok, user=p["task_prompt"], system=None)
             text = sampled_generate(
@@ -128,8 +128,6 @@ def generate_for_model(model_key: str, domains: list[str], cfg: dict,
                 "n_words": n_words(text),
                 "created_at": now_iso(),
             })
-            if i % 25 == 0 or i == len(todo):
-                print(f"  {i}/{len(todo)}", flush=True)
 
     # Free GPU memory before the caller loads the next model.
     del model

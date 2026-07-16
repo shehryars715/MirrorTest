@@ -43,7 +43,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from utils import (  # noqa: E402
     DOMAINS, PAIRS_DIR, append_jsonl, build_chat_text, clean_text,
     existing_ids, load_config, load_model_and_tokenizer, n_words, now_iso,
-    read_jsonl, sampled_generate,
+    progress_iter, read_jsonl, sampled_generate,
 )
 
 PARAPHRASE_INSTRUCTION = (
@@ -115,7 +115,7 @@ def main() -> None:
               f"({len(pairs) - len(todo)} already done)")
 
         kept = 0
-        for i, p in enumerate(todo, 1):
+        for p in progress_iter(todo, label=f"para {domain}"):
             seed = para["seed_base"] + int(p["prompt_id"].split("_")[-1])
             new_self = rewrite(p["text_self"], seed)
             new_foil = rewrite(p["text_foil"], seed + 500_000)
@@ -138,8 +138,6 @@ def main() -> None:
                 "passed_gate": ok, "created_at": now_iso(),
             })
             kept += int(ok)
-            if i % 20 == 0 or i == len(todo):
-                print(f"  {i}/{len(todo)} (passed gate so far: {kept})", flush=True)
 
         total_ok = sum(1 for r in read_jsonl(out_path) if r.get("passed_gate"))
         tgt = pcfg["target_pairs_per_domain"]

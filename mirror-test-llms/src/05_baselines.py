@@ -64,7 +64,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from utils import (  # noqa: E402
     BASELINES_DIR, PAIRS_DIR, append_jsonl, build_chat_text, continuation_mean_nll,
     existing_ids, load_config, load_model_and_tokenizer, model_index, now_iso,
-    read_jsonl,
+    progress_iter, read_jsonl,
 )
 
 
@@ -262,7 +262,7 @@ def cmd_perplexity(args, cfg) -> None:
         if args.limit:
             pairs = pairs[: args.limit]
         print(f"[ppl] {path.name}: {len(pairs)} pairs")
-        for i, p in enumerate(pairs, 1):
+        for p in progress_iter(pairs, label=f"ppl {args.judge} {path.stem}"):
             row_id = f"{p['pair_id']}__{cond}"
             if row_id in done:
                 continue
@@ -288,8 +288,6 @@ def cmd_perplexity(args, cfg) -> None:
                 "created_at": now_iso(),
             })
             done.add(row_id)
-            if i % 50 == 0:
-                print(f"  {i}/{len(pairs)}", flush=True)
     print(f"[done] -> {out_path}")
 
 

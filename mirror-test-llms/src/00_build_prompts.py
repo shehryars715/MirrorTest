@@ -52,7 +52,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from utils import (  # noqa: E402
-    PROMPTS_DIR, load_config, n_words, write_jsonl, sha256_file, now_iso,
+    PROMPTS_DIR, load_config, n_words, progress_iter, write_jsonl, sha256_file,
+    now_iso,
 )
 
 # --------------------------------------------------------------------------
@@ -203,7 +204,8 @@ def build_domain(domain: str, cfg: dict, n_target: int) -> tuple[list[dict], dic
     report = {"scanned": 0, "kept": 0, "ref_length": 0, "shared_filters": 0, "dup_prompt": 0}
     kept, seen_prompts = [], set()
 
-    for cand in DOMAIN_ITERATORS[domain](cfg):
+    for cand in progress_iter(DOMAIN_ITERATORS[domain](cfg), total=None,
+                              label=f"scan {domain}", every_s=10):
         report["scanned"] += 1
         if report["scanned"] > 200_000:  # safety valve
             break
