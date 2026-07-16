@@ -60,8 +60,12 @@ def md_cell(cid: str, source: str) -> dict:
 def main() -> None:
     payload = build_payload()
     b64 = base64.b64encode(payload).decode("ascii")
-    stamp = (datetime.date.today().isoformat() + "-"
-             + hashlib.sha256(payload).hexdigest()[:8])
+    # Stamp covers the payload AND every cell source, so any change - even a
+    # cell-only edit - produces a new build id in the logs/reports.
+    h = hashlib.sha256(payload)
+    for f in sorted(SRC.glob("*")):
+        h.update(f.read_bytes())
+    stamp = datetime.date.today().isoformat() + "-" + h.hexdigest()[:8]
 
     intro = (SRC / "01_intro.md").read_text(encoding="utf-8")
     config = (SRC / "02_config.py").read_text(encoding="utf-8") \

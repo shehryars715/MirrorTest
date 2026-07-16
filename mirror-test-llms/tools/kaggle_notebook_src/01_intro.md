@@ -30,12 +30,18 @@ results into **one file** for Claude.
 1. *(from the 2nd run onward)* right panel → **+ Add Input** → *Your Work* →
    select this notebook's **previous version output** → Add. (This is how
    the new session sees everything already computed.)
+   **Safety net:** if you forget this step, the notebook automatically
+   recovers all past results from your GitHub repository instead (look for
+   `[seed]` lines near the top of the log) — as long as Claude has ingested
+   and pushed your latest bundle. Attaching the Input is still preferred:
+   it is always at least as up-to-date as GitHub.
 2. Click **Save Version → Save & Run All (Commit)** → close the tab.
    Kaggle runs it in the background (up to ~8 h of work per run, then it
    stops itself safely).
 3. When Kaggle notifies you it finished: open the version → **Output** tab →
    download **`mirror_bundle.zip`** and **`SESSION_REPORT.md`** → put them
-   in `Desktop/Mirror/` on your laptop → tell Claude *“new bundle is in”*.
+   in `Desktop/Mirror/Output/` on your laptop → tell Claude *“new bundle is
+   in”*.
 
 Repeat until the report's first line says **ALL GPU WORK COMPLETE**
 (expect **3–4 runs total**). Claude does all analysis and paper work from
