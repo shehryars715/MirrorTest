@@ -1,0 +1,11 @@
+{
+  "n_pairs": 104,
+  "n_texts": 208,
+  "acc_singletext_char_ngram": 0.8462,
+  "acc_singletext_surface": 0.7933,
+  "acc_pairwise_char_ngram": 0.9519,
+  "judge": "qwen2.5-0.5b-instruct",
+  "foil": "mistral-7b-instruct-v0.3",
+  "domain": "news",
+  "created_at": "2026-07-17T21:09:47"
+}

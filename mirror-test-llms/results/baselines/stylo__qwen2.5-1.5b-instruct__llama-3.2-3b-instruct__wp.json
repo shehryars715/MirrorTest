@@ -1,0 +1,11 @@
+{
+  "n_pairs": 155,
+  "n_texts": 310,
+  "acc_singletext_char_ngram": 0.9323,
+  "acc_singletext_surface": 0.9419,
+  "acc_pairwise_char_ngram": 1.0,
+  "judge": "qwen2.5-1.5b-instruct",
+  "foil": "llama-3.2-3b-instruct",
+  "domain": "wp",
+  "created_at": "2026-07-17T21:10:01"
+}

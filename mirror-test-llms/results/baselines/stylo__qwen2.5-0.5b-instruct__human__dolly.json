@@ -1,0 +1,11 @@
+{
+  "n_pairs": 64,
+  "n_texts": 128,
+  "acc_singletext_char_ngram": 0.8281,
+  "acc_singletext_surface": 0.8281,
+  "acc_pairwise_char_ngram": 0.9375,
+  "judge": "qwen2.5-0.5b-instruct",
+  "foil": "human",
+  "domain": "dolly",
+  "created_at": "2026-07-17T21:09:13"
+}

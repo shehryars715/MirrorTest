@@ -1,0 +1,8 @@
+{
+  "train_news__test_dolly": 0.5843,
+  "train_news__test_wp": 0.6167,
+  "train_dolly__test_news": 0.5762,
+  "train_dolly__test_wp": 0.66,
+  "train_wp__test_news": 0.5762,
+  "train_wp__test_dolly": 0.5964
+}

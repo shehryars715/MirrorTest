@@ -1,0 +1,11 @@
+{
+  "n_pairs": 147,
+  "n_texts": 294,
+  "acc_singletext_char_ngram": 0.949,
+  "acc_singletext_surface": 0.9626,
+  "acc_pairwise_char_ngram": 0.9932,
+  "judge": "qwen2.5-1.5b-instruct",
+  "foil": "human",
+  "domain": "wp",
+  "created_at": "2026-07-17T21:09:56"
+}

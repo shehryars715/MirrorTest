@@ -1,0 +1,11 @@
+{
+  "n_pairs": 137,
+  "n_texts": 274,
+  "acc_singletext_char_ngram": 0.9562,
+  "acc_singletext_surface": 0.8832,
+  "acc_pairwise_char_ngram": 0.9927,
+  "judge": "qwen2.5-1.5b-instruct",
+  "foil": "gemma-2-9b-it",
+  "domain": "dolly",
+  "created_at": "2026-07-17T21:09:50"
+}

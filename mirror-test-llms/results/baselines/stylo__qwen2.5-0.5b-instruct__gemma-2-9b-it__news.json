@@ -1,0 +1,11 @@
+{
+  "n_pairs": 117,
+  "n_texts": 234,
+  "acc_singletext_char_ngram": 0.8419,
+  "acc_singletext_surface": 0.7735,
+  "acc_pairwise_char_ngram": 0.9487,
+  "judge": "qwen2.5-0.5b-instruct",
+  "foil": "gemma-2-9b-it",
+  "domain": "news",
+  "created_at": "2026-07-17T21:09:06"
+}
