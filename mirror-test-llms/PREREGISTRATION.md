@@ -7,11 +7,14 @@
 > the evidence that analyses were planned, not fished for. Being wrong
 > publicly is good science (§11).
 
-**Author:** <Shehryar>
-**Institution:** NUST, BS Data Science 
-**Date frozen:** <2026-07-16>
-**Config hash:** run `git log -1 --format=%H -- configs/models.yaml` after
-committing and paste the commit hash here: `<hash>`
+**Author:** Shehryar
+**Institution:** NUST, BS Data Science
+**Date frozen:** 2026-07-16 (hypotheses, design, and analysis plan; commit
+`68dfb3d`). Prediction in §2 recorded 2026-07-17 — see deviations log.
+**Config hash:** `358a530de8b2a67ba62271f102985d936395ed46` (last commit
+touching `configs/models.yaml` at freeze time; model revisions were pinned
+into the config on 2026-07-17 from the recorded generation runs — see
+deviations log).
 
 ---
 
@@ -43,10 +46,28 @@ judge's choices, suggesting likelihood preference as the underlying signal.
 **RQ5 (optional — language).** Does the pattern replicate in Urdu?
 No directional hypothesis; exploratory.
 
-## 2. My prediction (fill in ONE row from protocol §11 before running)
+## 2. My prediction (recorded 2026-07-17, before any judging runs)
 
-> I predict outcome #〈1–5〉: 〈copy the row's description here〉.
-> Reasoning (2–3 sentences): 〈why〉.
+> I predict **outcome #2** (deflationary): accuracy rises with scale, but
+> collapses under paraphrasing; the character-n-gram classifier matches or
+> exceeds the judges' accuracy on the same items; and the lower-perplexity
+> rule agrees substantially with the judges' choices (κ > 0.4) —
+> "self-recognition" in this regime is style/likelihood matching.
+>
+> Reasoning: (1) the signal most plausibly available to a stateless
+> next-token predictor is its own stylistic fingerprint — exactly what the
+> paraphrase attack removes and the stylometric classifier replicates;
+> (2) the protocol itself notes this outcome is statistically the most
+> likely; (3) the stylometric baseline, already computed at registration
+> time, shows the information needed to solve the task is largely present
+> in surface statistics (pairwise accuracy > 0.95 in many cells), so
+> privileged self-access is not required to explain a positive result.
+>
+> **Disclosure:** this prediction was recorded after generation and the
+> stylometric baseline were complete, but BEFORE any judge was run on any
+> pair (the primary endpoint) — the judges' accuracies, the paraphrase
+> attack, the perplexity-rule agreement, and all significance tests were
+> unseen at registration time.
 
 ## 3. Design (fixed)
 
@@ -105,4 +126,5 @@ a reason, and disclosed in the paper.
 
 | Date | What changed | Why |
 |---|---|---|
-| — | — | — |
+| 2026-07-17 | §2 prediction filled (left as a template at the 07-16 freeze). | Recorded before any judging (primary endpoint untouched); disclosed in §2 that the stylometric baseline had already been computed at registration time. |
+| 2026-07-17 | Model `revision:` fields in `configs/models.yaml` pinned to the exact HF commits recorded in the generation logs (previously `null` = latest). | Documentation of what actually ran, not a change to it; makes the §3 "pinned revisions" claim true and the appendix reproducible. Paraphraser/base models pin when they first run. |
