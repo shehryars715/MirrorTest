@@ -1,0 +1,11 @@
+{
+  "n_pairs": 154,
+  "n_texts": 308,
+  "acc_singletext_char_ngram": 0.8019,
+  "acc_singletext_surface": 0.7143,
+  "acc_pairwise_char_ngram": 0.9091,
+  "judge": "qwen2.5-14b-instruct",
+  "foil": "mistral-7b-instruct-v0.3",
+  "domain": "dolly",
+  "created_at": "2026-07-18T10:32:54"
+}
