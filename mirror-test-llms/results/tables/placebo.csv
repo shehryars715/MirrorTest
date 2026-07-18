@@ -1,0 +1,6 @@
+judge,n_runs,chose_A_rate,ci_lo,ci_hi,flag
+qwen2.5-0.5b-instruct,824,0.9891,0.9794,0.9942,POSITION BIAS
+qwen2.5-1.5b-instruct,896,0.0971,0.0794,0.1182,POSITION BIAS
+qwen2.5-3b-instruct,896,0.3493,0.3188,0.3811,POSITION BIAS
+qwen2.5-7b-instruct,896,0.9888,0.9796,0.9939,POSITION BIAS
+qwen2.5-14b-instruct,896,0.7199,0.6896,0.7483,POSITION BIAS

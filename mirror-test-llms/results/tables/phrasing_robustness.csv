@@ -1,0 +1,2 @@
+judge,foil,n_phrasings,acc_mean,acc_min,acc_max,range
+qwen2.5-14b-instruct,llama-3.2-3b-instruct,3,0.5652,0.5102,0.6117,0.1015

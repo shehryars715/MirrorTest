@@ -1,190 +1,232 @@
 {
-  "build": "2026-07-16-6f473df5",
+  "build": "2026-07-16-a27f93cc",
   "budget_hours": 8.0,
   "tasks": {
     "prompts": {
-      "status": "ran",
-      "note": "2 min",
-      "tail": [
-        "Generating test split:   0%|          | 0/15138 [00:00<?, ? examples/s]",
-        "Generating test split:  66%|\u2588\u2588\u2588\u2588\u2588\u2588\u258c   | 10000/15138 [00:00<00:00, 86835.36 examples/s]",
-        "Generating test split: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 15138/15138 [00:00<00:00, 95494.70 examples/s]",
-        "",
-        "Generating validation split:   0%|          | 0/15620 [00:00<?, ? examples/s]",
-        "Generating validation split:  51%|\u2588\u2588\u2588\u2588\u2588     | 8000/15620 [00:00<00:00, 79359.98 examples/s]",
-        "Generating validation split: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 15620/15620 [00:00<00:00, 92114.33 examples/s]",
-        "[scan wp] 1 items | 0.07 it/s | elapsed 0:14",
-        "[scan wp] 204 items | 13.72 it/s | elapsed 0:14",
-        "[done] /kaggle/working/mirror-test-llms/data/prompts/wp.jsonl  kept=200  rejected: ref_length=1 shared=3 dup=0",
-        "[done] checksums + report written to /kaggle/working/mirror-test-llms/data/prompts",
-        "NEXT: commit data/prompts/ to git (this is the freeze), then run src/01_generate.py on a GPU."
-      ]
+      "status": "done",
+      "note": "already complete"
     },
     "gen:qwen2.5-0.5b-instruct": {
-      "status": "ran",
-      "note": "144 min",
-      "tail": [
-        "[gen qwen2.5-0.5b-instruct/wp] 327/350 (93%) | 0.12 it/s | elapsed 46:32 | ETA 3:16",
-        "[gen qwen2.5-0.5b-instruct/wp] 329/350 (94%) | 0.12 it/s | elapsed 46:54 | ETA 2:59",
-        "[gen qwen2.5-0.5b-instruct/wp] 331/350 (95%) | 0.12 it/s | elapsed 47:14 | ETA 2:42",
-        "[gen qwen2.5-0.5b-instruct/wp] 335/350 (96%) | 0.12 it/s | elapsed 47:29 | ETA 2:07",
-        "[gen qwen2.5-0.5b-instruct/wp] 337/350 (96%) | 0.12 it/s | elapsed 47:53 | ETA 1:50",
-        "[gen qwen2.5-0.5b-instruct/wp] 339/350 (97%) | 0.12 it/s | elapsed 48:16 | ETA 1:33",
-        "[gen qwen2.5-0.5b-instruct/wp] 341/350 (97%) | 0.12 it/s | elapsed 48:36 | ETA 1:16",
-        "[gen qwen2.5-0.5b-instruct/wp] 343/350 (98%) | 0.12 it/s | elapsed 48:59 | ETA 0:59",
-        "[gen qwen2.5-0.5b-instruct/wp] 346/350 (99%) | 0.12 it/s | elapsed 49:25 | ETA 0:34",
-        "[gen qwen2.5-0.5b-instruct/wp] 348/350 (99%) | 0.12 it/s | elapsed 49:48 | ETA 0:17",
-        "[gen qwen2.5-0.5b-instruct/wp] 350/350 (100%) | 0.12 it/s | elapsed 50:11 | ETA 0:00",
-        "NEXT: run src/02_build_pairs.py (CPU) to clean texts and build pairs."
-      ]
+      "status": "done",
+      "note": "already complete"
     },
     "gen:qwen2.5-1.5b-instruct": {
-      "status": "ran",
-      "note": "206 min",
-      "tail": [
-        "[gen qwen2.5-1.5b-instruct/wp] 330/350 (94%) | 0.08 it/s | elapsed 1:06:51 | ETA 4:03",
-        "[gen qwen2.5-1.5b-instruct/wp] 333/350 (95%) | 0.08 it/s | elapsed 1:07:17 | ETA 3:26",
-        "[gen qwen2.5-1.5b-instruct/wp] 335/350 (96%) | 0.08 it/s | elapsed 1:07:36 | ETA 3:01",
-        "[gen qwen2.5-1.5b-instruct/wp] 337/350 (96%) | 0.08 it/s | elapsed 1:08:03 | ETA 2:37",
-        "[gen qwen2.5-1.5b-instruct/wp] 339/350 (97%) | 0.08 it/s | elapsed 1:08:19 | ETA 2:13",
-        "[gen qwen2.5-1.5b-instruct/wp] 341/350 (97%) | 0.08 it/s | elapsed 1:08:47 | ETA 1:48",
-        "[gen qwen2.5-1.5b-instruct/wp] 343/350 (98%) | 0.08 it/s | elapsed 1:09:09 | ETA 1:24",
-        "[gen qwen2.5-1.5b-instruct/wp] 345/350 (99%) | 0.08 it/s | elapsed 1:09:31 | ETA 1:00",
-        "[gen qwen2.5-1.5b-instruct/wp] 347/350 (99%) | 0.08 it/s | elapsed 1:09:55 | ETA 0:36",
-        "[gen qwen2.5-1.5b-instruct/wp] 349/350 (100%) | 0.08 it/s | elapsed 1:10:19 | ETA 0:12",
-        "[gen qwen2.5-1.5b-instruct/wp] 350/350 (100%) | 0.08 it/s | elapsed 1:10:30 | ETA 0:00",
-        "NEXT: run src/02_build_pairs.py (CPU) to clean texts and build pairs."
-      ]
+      "status": "done",
+      "note": "already complete"
     },
     "gen:qwen2.5-3b-instruct": {
-      "status": "paused",
-      "note": "128 min",
-      "tail": [
-        "[gen qwen2.5-3b-instruct/dolly] 148/350 (42%) | 0.05 it/s | elapsed 48:41 | ETA 1:06:27",
-        "[gen qwen2.5-3b-instruct/dolly] 149/350 (43%) | 0.05 it/s | elapsed 49:01 | ETA 1:06:08",
-        "[gen qwen2.5-3b-instruct/dolly] 150/350 (43%) | 0.05 it/s | elapsed 49:21 | ETA 1:05:48",
-        "[gen qwen2.5-3b-instruct/dolly] 151/350 (43%) | 0.05 it/s | elapsed 49:41 | ETA 1:05:29",
-        "[gen qwen2.5-3b-instruct/dolly] 152/350 (43%) | 0.05 it/s | elapsed 50:01 | ETA 1:05:09",
-        "[gen qwen2.5-3b-instruct/dolly] 153/350 (44%) | 0.05 it/s | elapsed 50:20 | ETA 1:04:49",
-        "[gen qwen2.5-3b-instruct/dolly] 154/350 (44%) | 0.05 it/s | elapsed 50:40 | ETA 1:04:29",
-        "[gen qwen2.5-3b-instruct/dolly] 155/350 (44%) | 0.05 it/s | elapsed 50:59 | ETA 1:04:09",
-        "[gen qwen2.5-3b-instruct/dolly] 156/350 (45%) | 0.05 it/s | elapsed 51:19 | ETA 1:03:49",
-        "[gen qwen2.5-3b-instruct/dolly] 157/350 (45%) | 0.05 it/s | elapsed 51:38 | ETA 1:03:29",
-        "[gen qwen2.5-3b-instruct/dolly] 158/350 (45%) | 0.05 it/s | elapsed 51:58 | ETA 1:03:09",
-        "[gen qwen2.5-3b-instruct/dolly] 159/350 (45%) | 0.05 it/s | elapsed 52:18 | ETA 1:02:49"
-      ]
+      "status": "done",
+      "note": "already complete"
     },
     "gen:qwen2.5-7b-instruct": {
-      "status": "deferred",
-      "note": "session budget spent"
-    },
-    "gen:qwen2.5-14b-instruct": {
-      "status": "deferred",
-      "note": "session budget spent"
+      "status": "done",
+      "note": "already complete"
     },
     "gen:llama-3.2-3b-instruct": {
-      "status": "deferred",
-      "note": "session budget spent"
+      "status": "done",
+      "note": "already complete"
     },
     "gen:gemma-2-9b-it": {
-      "status": "deferred",
-      "note": "session budget spent"
+      "status": "done",
+      "note": "already complete"
     },
     "gen:mistral-7b-instruct-v0.3": {
+      "status": "done",
+      "note": "already complete"
+    },
+    "gen:qwen2.5-14b-instruct": {
+      "status": "done",
+      "note": "already complete"
+    },
+    "pairs": {
+      "status": "done",
+      "note": "already complete"
+    },
+    "paraphrase": {
+      "status": "ran",
+      "note": "92 min",
+      "tail": [
+        "[para wp] 186/195 (95%) | 0.04 it/s | elapsed 1:16:24 | ETA 3:41",
+        "[para wp] 187/195 (96%) | 0.04 it/s | elapsed 1:16:49 | ETA 3:17",
+        "[para wp] 188/195 (96%) | 0.04 it/s | elapsed 1:17:11 | ETA 2:52",
+        "[para wp] 189/195 (97%) | 0.04 it/s | elapsed 1:17:37 | ETA 2:27",
+        "[para wp] 190/195 (97%) | 0.04 it/s | elapsed 1:18:00 | ETA 2:03",
+        "[para wp] 191/195 (98%) | 0.04 it/s | elapsed 1:18:26 | ETA 1:38",
+        "[para wp] 192/195 (98%) | 0.04 it/s | elapsed 1:18:53 | ETA 1:13",
+        "[para wp] 193/195 (99%) | 0.04 it/s | elapsed 1:19:18 | ETA 0:49",
+        "[para wp] 194/195 (99%) | 0.04 it/s | elapsed 1:19:43 | ETA 0:24",
+        "[para wp] 195/195 (100%) | 0.04 it/s | elapsed 1:20:07 | ETA 0:00",
+        "[para] wp: 121 pairs passed the quality gate",
+        "NEXT: src/03_judge_ppp.py --include-paraphrase on the paraphrase judge."
+      ]
+    },
+    "ppp:qwen2.5-0.5b-instruct": {
+      "status": "ran",
+      "note": "10 min",
+      "tail": [
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__news] starting: 146 items",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__news] 36/146 (25%) | 2.40 it/s | elapsed 0:15 | ETA 0:45",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__news] 74/146 (51%) | 2.43 it/s | elapsed 0:30 | ETA 0:29",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__news] 111/146 (76%) | 2.44 it/s | elapsed 0:45 | ETA 0:14",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__news] 146/146 (100%) | 2.44 it/s | elapsed 0:59 | ETA 0:00",
+        "[judge] placebo__qwen2.5-0.5b-instruct__wp.jsonl: 124 pairs, condition=placebo",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__wp] starting: 124 items",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__wp] 58/124 (47%) | 3.81 it/s | elapsed 0:15 | ETA 0:17",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__wp] 116/124 (94%) | 3.81 it/s | elapsed 0:30 | ETA 0:02",
+        "[judge qwen2.5-0.5b-instruct placebo__qwen2.5-0.5b-instruct__wp] 124/124 (100%) | 3.80 it/s | elapsed 0:32 | ETA 0:00",
+        "[done] 3476 new runs -> /kaggle/working/mirror-test-llms/results/judgments/ppp__qwen2.5-0.5b-instruct.jsonl",
+        "NEXT: repeat for the other judges, then src/04_judge_ipp.py and src/05_baselines.py."
+      ]
+    },
+    "ppp:qwen2.5-1.5b-instruct": {
+      "status": "ran",
+      "note": "21 min",
+      "tail": [
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__news] 117/150 (78%) | 1.27 it/s | elapsed 1:32 | ETA 0:26",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__news] 137/150 (91%) | 1.27 it/s | elapsed 1:47 | ETA 0:10",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__news] 150/150 (100%) | 1.27 it/s | elapsed 1:58 | ETA 0:00",
+        "[judge] placebo__qwen2.5-1.5b-instruct__wp.jsonl: 149 pairs, condition=placebo",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__wp] starting: 149 items",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__wp] 33/149 (22%) | 2.20 it/s | elapsed 0:15 | ETA 0:52",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__wp] 67/149 (45%) | 2.21 it/s | elapsed 0:30 | ETA 0:37",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__wp] 100/149 (67%) | 2.19 it/s | elapsed 0:45 | ETA 0:22",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__wp] 134/149 (90%) | 2.20 it/s | elapsed 1:00 | ETA 0:06",
+        "[judge qwen2.5-1.5b-instruct placebo__qwen2.5-1.5b-instruct__wp] 149/149 (100%) | 2.20 it/s | elapsed 1:07 | ETA 0:00",
+        "[done] 3946 new runs -> /kaggle/working/mirror-test-llms/results/judgments/ppp__qwen2.5-1.5b-instruct.jsonl",
+        "NEXT: repeat for the other judges, then src/04_judge_ipp.py and src/05_baselines.py."
+      ]
+    },
+    "ppp:qwen2.5-3b-instruct": {
+      "status": "ran",
+      "note": "37 min",
+      "tail": [
+        "[judge] placebo__qwen2.5-3b-instruct__wp.jsonl: 149 pairs, condition=placebo",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] starting: 149 items",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 20/149 (13%) | 1.33 it/s | elapsed 0:15 | ETA 1:36",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 40/149 (27%) | 1.31 it/s | elapsed 0:30 | ETA 1:23",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 61/149 (41%) | 1.33 it/s | elapsed 0:45 | ETA 1:06",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 81/149 (54%) | 1.32 it/s | elapsed 1:01 | ETA 0:51",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 101/149 (68%) | 1.32 it/s | elapsed 1:16 | ETA 0:36",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 121/149 (81%) | 1.32 it/s | elapsed 1:31 | ETA 0:21",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 141/149 (95%) | 1.32 it/s | elapsed 1:46 | ETA 0:06",
+        "[judge qwen2.5-3b-instruct placebo__qwen2.5-3b-instruct__wp] 149/149 (100%) | 1.32 it/s | elapsed 1:52 | ETA 0:00",
+        "[done] 4082 new runs -> /kaggle/working/mirror-test-llms/results/judgments/ppp__qwen2.5-3b-instruct.jsonl",
+        "NEXT: repeat for the other judges, then src/04_judge_ipp.py and src/05_baselines.py."
+      ]
+    },
+    "ppp:qwen2.5-7b-instruct": {
+      "status": "ran",
+      "note": "87 min",
+      "tail": [
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 71/148 (48%) | 0.55 it/s | elapsed 2:09 | ETA 2:20",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 80/148 (54%) | 0.55 it/s | elapsed 2:26 | ETA 2:04",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 89/148 (60%) | 0.55 it/s | elapsed 2:42 | ETA 1:47",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 98/148 (66%) | 0.55 it/s | elapsed 2:58 | ETA 1:30",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 107/148 (72%) | 0.55 it/s | elapsed 3:13 | ETA 1:14",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 116/148 (78%) | 0.55 it/s | elapsed 3:29 | ETA 0:57",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 125/148 (84%) | 0.55 it/s | elapsed 3:46 | ETA 0:41",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 134/148 (91%) | 0.55 it/s | elapsed 4:02 | ETA 0:25",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 143/148 (97%) | 0.55 it/s | elapsed 4:18 | ETA 0:09",
+        "[judge qwen2.5-7b-instruct placebo__qwen2.5-7b-instruct__wp] 148/148 (100%) | 0.55 it/s | elapsed 4:27 | ETA 0:00",
+        "[done] 4436 new runs -> /kaggle/working/mirror-test-llms/results/judgments/ppp__qwen2.5-7b-instruct.jsonl",
+        "NEXT: repeat for the other judges, then src/04_judge_ipp.py and src/05_baselines.py."
+      ]
+    },
+    "ppp:qwen2.5-14b-instruct": {
+      "status": "ran",
+      "note": "168 min",
+      "tail": [
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 105/149 (70%) | 0.30 it/s | elapsed 5:45 | ETA 2:24",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 110/149 (74%) | 0.30 it/s | elapsed 6:02 | ETA 2:08",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 115/149 (77%) | 0.30 it/s | elapsed 6:18 | ETA 1:52",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 120/149 (81%) | 0.30 it/s | elapsed 6:35 | ETA 1:35",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 125/149 (84%) | 0.30 it/s | elapsed 6:52 | ETA 1:19",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 130/149 (87%) | 0.30 it/s | elapsed 7:09 | ETA 1:02",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 135/149 (91%) | 0.30 it/s | elapsed 7:25 | ETA 0:46",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 140/149 (94%) | 0.30 it/s | elapsed 7:42 | ETA 0:29",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 145/149 (97%) | 0.30 it/s | elapsed 7:59 | ETA 0:13",
+        "[judge qwen2.5-14b-instruct placebo__qwen2.5-14b-instruct__wp] 149/149 (100%) | 0.30 it/s | elapsed 8:12 | ETA 0:00",
+        "[done] 4582 new runs -> /kaggle/working/mirror-test-llms/results/judgments/ppp__qwen2.5-14b-instruct.jsonl",
+        "NEXT: repeat for the other judges, then src/04_judge_ipp.py and src/05_baselines.py."
+      ]
+    },
+    "main-cell": {
+      "status": "paused",
+      "note": "66 min",
+      "tail": [
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 19/195 (10%) | 0.13 it/s | elapsed 2:21 | ETA 21:54",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 22/195 (11%) | 0.14 it/s | elapsed 2:42 | ETA 21:16",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 24/195 (12%) | 0.14 it/s | elapsed 2:57 | ETA 21:06",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 26/195 (13%) | 0.13 it/s | elapsed 3:12 | ETA 20:53",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 29/195 (15%) | 0.14 it/s | elapsed 3:34 | ETA 20:27",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 31/195 (16%) | 0.13 it/s | elapsed 3:49 | ETA 20:15",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 34/195 (17%) | 0.14 it/s | elapsed 4:10 | ETA 19:46",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 37/195 (19%) | 0.14 it/s | elapsed 4:30 | ETA 19:16",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 39/195 (20%) | 0.14 it/s | elapsed 4:46 | ETA 19:07",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 42/195 (22%) | 0.14 it/s | elapsed 5:08 | ETA 18:44",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 44/195 (23%) | 0.14 it/s | elapsed 5:24 | ETA 18:35",
+        "[judge qwen2.5-14b-instruct ppp__qwen2.5-14b-instruct__llama-3.2-3b-instruct__wp] 47/195 (24%) | 0.14 it/s | elapsed 5:45 | ETA 18:07"
+      ]
+    },
+    "ipp:qwen2.5-0.5b-instruct": {
       "status": "deferred",
       "note": "session budget spent"
     },
-    "pairs": {
-      "status": "blocked",
-      "note": "waiting on: gen:qwen2.5-3b-instruct, gen:qwen2.5-7b-instruct, gen:qwen2.5-14b-instruct, gen:llama-3.2-3b-instruct, gen:gemma-2-9b-it, gen:mistral-7b-instruct-v0.3"
-    },
-    "paraphrase": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
-    "ppp:qwen2.5-0.5b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
-    "ppp:qwen2.5-1.5b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
-    "ppp:qwen2.5-3b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
-    "ppp:qwen2.5-7b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
-    "ppp:qwen2.5-14b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
-    "main-cell": {
-      "status": "blocked",
-      "note": "waiting on: paraphrase, ppp:qwen2.5-14b-instruct"
-    },
-    "ipp:qwen2.5-0.5b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
-    },
     "ipp:qwen2.5-1.5b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ipp:qwen2.5-3b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ipp:qwen2.5-7b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ipp:qwen2.5-14b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppp:qwen2.5-7b-base": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppp:qwen2.5-14b-base": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-0.5b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-1.5b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-3b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-7b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-14b-instruct": {
-      "status": "blocked",
-      "note": "waiting on: paraphrase"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-7b-base": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "ppl:qwen2.5-14b-base": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "deferred",
+      "note": "session budget spent"
     },
     "stylometric": {
-      "status": "blocked",
-      "note": "waiting on: pairs"
+      "status": "done",
+      "note": "already complete"
     }
   }
 }
