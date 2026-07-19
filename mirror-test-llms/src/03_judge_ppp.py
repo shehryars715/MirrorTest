@@ -157,7 +157,14 @@ def main() -> None:
             for ph_id in args.phrasings:
                 ph = phrasings[ph_id]
                 for order in ("self_A", "self_B"):
-                    run_id = f"{pair['pair_id']}__{order}__ph{ph_id}"
+                    # Paraphrased pairs intentionally reuse the ORIGINAL
+                    # pair_id (that is what pairs them for McNemar in
+                    # 06_stats), so their run_ids must carry the condition —
+                    # otherwise they collide with the core runs of the same
+                    # pair and resume skips them all (session-6 bug: the
+                    # paraphrase judging silently no-oped).
+                    tag = "" if cond != "paraphrase" else "__para"
+                    run_id = f"{pair['pair_id']}{tag}__{order}__ph{ph_id}"
                     if run_id in done:
                         continue
                     text_a = pair["text_self"] if order == "self_A" else pair["text_foil"]

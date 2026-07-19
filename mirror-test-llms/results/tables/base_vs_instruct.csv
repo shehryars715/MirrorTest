@@ -1,0 +1,9 @@
+base_judge,foil,acc_base,n_base,auroc_base,acc_instruct,auroc_instruct
+qwen2.5-7b-base,llama-3.2-3b-instruct,0.4885,523,0.4926,0.5000,0.4906
+qwen2.5-7b-base,gemma-2-9b-it,0.4598,522,0.4160,0.4933,0.3606
+qwen2.5-7b-base,mistral-7b-instruct-v0.3,0.5849,477,0.6449,0.5231,0.6547
+qwen2.5-7b-base,human,0.6149,248,0.6825,0.6250,0.7711
+qwen2.5-14b-base,llama-3.2-3b-instruct,0.5434,542,0.6322,0.5738,0.6302
+qwen2.5-14b-base,gemma-2-9b-it,0.4886,526,0.4724,0.4867,0.4566
+qwen2.5-14b-base,mistral-7b-instruct-v0.3,0.5571,508,0.5901,0.5591,0.6289
+qwen2.5-14b-base,human,0.6404,267,0.8416,0.8221,0.9324
