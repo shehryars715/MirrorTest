@@ -2,9 +2,10 @@
 
 | File | What |
 |---|---|
-| `TEMPLATE_PAPER.md` | **start here** — the paper written out in full prose with 〈placeholders〉 and per-outcome variant sentences; read it to see what "done" looks like, draft into it, then port section-by-section into main.tex |
-| `main.tex` | full ACL short-paper skeleton: draft abstract, section scaffolds with page budgets, Limitations pre-filled, appendix wired to `results/` |
-| `references.bib` | the 11 protocol references (+ dataset-citation notes) — every entry marked for verification |
+| `PAPER_DRAFT.md` | **THE CURRENT DRAFT (v1, 2026-07-20, all numbers final)** — read and review this one; it matches main.tex word-for-word |
+| `main.tex` | the same complete draft in ACL LaTeX, ready for Overleaf (needs acl.sty + the two figure PDFs uploaded) |
+| `references.bib` | all references incl. dataset citations — every entry carries a VERIFY note: check each on arXiv/ACL Anthology before submission |
+| `TEMPLATE_PAPER.md` | the original fill-in template (kept for reference; superseded by PAPER_DRAFT.md) |
 
 ## Compiling
 

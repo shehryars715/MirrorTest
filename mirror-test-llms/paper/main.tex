@@ -1,309 +1,485 @@
 % ============================================================================
-% Do Small Language Models Recognize Their Own Reflection?
-% ACL short-paper skeleton (4 pages + unlimited references + appendix).
+% What Does the LLM Mirror Test Measure?
+% COMPLETE DRAFT v1 (2026-07-20) — all numbers final, from results/tables/.
+% Matches paper/PAPER_DRAFT.md word-for-word (that file is the review copy).
 %
-% HOW TO USE (see docs/06_writing_guide.md for the full walkthrough):
-%   1. On Overleaf, start from the OFFICIAL ACL template (acl-org/
-%      acl-style-files provides acl.sty) — this file assumes acl.sty exists.
-%   2. Replace the template's main.tex with this file; upload references.bib.
-%   3. Keep [review] while under review (adds line numbers + anonymizes);
-%      switch to [final] for camera-ready.
-%   4. Every <ANGLE-BRACKET> placeholder must be replaced before submission.
-%      Search for "<" to find them all.
-%   5. figures come from results/figures/*.pdf; Table 1 body can be pasted
-%      from results/tables/table1_main.tex (auto-generated).
-%
-% STYLE RULES baked into this skeleton (protocol §12):
-%   - every claim carries a number or a citation
-%   - no "impressive/remarkable"; present tense for results
-%   - "conscious(ness)" appears at most twice, both hedged (they are already
-%     placed below — do not add more)
-%   - "We release all code and data" appears in the abstract
+% To compile: Overleaf + official ACL style files (acl.sty) — see paper/README.md.
+% Upload figures: results/figures/fig1_scale_curve.pdf, fig2_paraphrase.pdf
+% (then adjust \includegraphics paths if they sit next to main.tex).
+% Keep [review] until camera-ready. Verify references.bib entries (VERIFY notes).
 % ============================================================================
 \documentclass[11pt]{article}
-\usepackage[review]{acl}     % <- [final] for camera-ready
+\usepackage[review]{acl}
 \usepackage{times}
 \usepackage{latexsym}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}
 
-\title{Do Small Language Models Recognize Their Own Reflection? \\
-       A Controlled Study of Scale and Mechanism}
-% Alternative titles (protocol §12): pick or blend, then delete:
-%  "Mirror, Mirror: Self-Recognition in Small Open Language Models Is
-%   [Mostly Stylometry / Scale-Dependent]"
-%  "What Does the LLM Mirror Test Measure? Paraphrase and Stylometric
-%   Controls for Self-Recognition"
+\title{What Does the LLM Mirror Test Measure? \\
+  Implicit Self-Information Without Explicit Self-Recognition \\
+  in Small Open Language Models}
 
-\author{<Your Name> \\ <NUST, Islamabad> \\ \texttt{<email>}}
-% Under double-blind review the acl [review] option hides this block.
+\author{Shehryar \\ NUST, Islamabad \\ \texttt{<email>}}
 
 \begin{document}
 \maketitle
 
-% ----------------------------------------------------------------------------
 \begin{abstract}
-% ~150 words. Protocol §12 draft — fill every bracket AFTER experiments.
 Large language models have been reported to distinguish their own
-generations from those of other models, a behavioral analogue of the mirror
-test. We ask when this ability appears and what signal it relies on. Across
-five sizes of a single open model family (0.5B--14B), three text domains,
-and \mbox{three} foil authors including humans, we measure pairwise
-self-recognition under position counterbalancing and log-probability
-scoring. We find that accuracy <rises from chance at 0.5B to X\% at 14B /
-remains near chance at all sizes>. Critically, <paraphrasing both candidates
-collapses accuracy to Y\%, and a character-n-gram classifier matches the
-largest model>, while a simple lower-perplexity rule agrees with the models'
-choices ($\kappa$ = <Z>). Our results suggest that self-recognition in this
-regime is <largely surface style- and likelihood-matching / not reducible to
-surface features>, cautioning against mentalistic readings of the LLM mirror
-test. We release all code, prompts, and judgments.\footnote{
-\texttt{<anonymized repo link during review; real link in camera-ready>}}
+generations from those of other models, a behavioral analogue of the
+mirror test. We ask when this ability appears and what signal it relies
+on. Across five sizes of one open instruction-tuned family (Qwen2.5,
+0.5B--14B), three text domains, and four foil authors including humans, we
+measure pairwise self-recognition under position counterbalancing and
+first-token log-probability scoring (32{,}580 judgments). Verbal
+self-recognition against LLM foils is absent to marginal at every size
+(pooled accuracy 0.49--0.54) and dominated by extreme position bias; the
+ability that does grow with scale is human-versus-machine discrimination
+(AUROC 0.58~$\rightarrow$~0.93). Yet a trivial lower-perplexity rule
+identifies the judges' own text almost perfectly (99.8\% at $\geq$7B)
+while agreeing with the models' actual choices only at chance level
+($\kappa \leq 0.04$): the models possess self-information their answers do
+not use. A character n-gram classifier (0.90--0.98) outperforms every
+judge, and paraphrasing collapses the implicit signal
+(0.998~$\rightarrow$~0.712). In this regime, the mirror test measures
+position bias and style detection, not self-access. We release all code,
+prompts, and judgments.
 \end{abstract}
 
-% ----------------------------------------------------------------------------
-\section{Introduction}  % budget: 0.75 pp
-% ¶1 hook: mirror test + the temptation to read self-awareness into LLMs.
-% This paragraph contains BOTH permitted "conscious" usages. Keep it so.
+\section{Introduction}
 Since \citet{gallup1970chimpanzees} showed that chimpanzees, but not
-monkeys, use a mirror to inspect marks on their own faces, mirror-style
-tests have served as a contested behavioral probe of self-recognition.
-Recent work reports an analogous behavior in large language models (LLMs):
-asked which of two texts they authored, frontier models answer above chance
+monkeys, use a mirror to investigate marks on their own bodies,
+mirror-style tests have served as a contested behavioral probe of
+self-recognition. A textual analogue has been reported in large language
+models: shown two responses to the same task --- one their own, one by
+another author --- frontier models identify their own above chance
 \citep{panickssery2024llm}. Whether such behavior bears on machine
 consciousness is philosophically contested
-\citep{butlin2023consciousness,chalmers2023could}; we make no such claim,
-and use ``self'' throughout in the purely empirical sense of ``generated by
-the same weights.''
+\citep{butlin2023consciousness,chalmers2023could}; we make no such claim
+and use ``self'' throughout only in the prosaic sense of \emph{generated
+by the same weights}.
 
-% ¶2 the gap (assembled from docs/05_reading_guide.md):
-Prior self-recognition studies concentrate on large proprietary or 7B+
-models, single scales, and English, and none isolates what \emph{signal}
-the recognizing model uses. We ask two pre-registered questions.
-\textbf{RQ1 (scale):} at what size does self-recognition appear within one
-open model family (0.5B--14B)? \textbf{RQ2 (mechanism):} does it survive
-paraphrasing, and can a character-n-gram classifier or a lower-perplexity
-rule reproduce it?
+Two questions left open by prior work determine how such results should be
+read. First, \textbf{scale}: positive reports concern large proprietary or
+7B+ models at single scales; when does the behavior appear within one
+training recipe? Second, \textbf{mechanism}: does a model that passes the
+mirror test use privileged access to its own generative dispositions, or
+something cheaper --- its stylistic fingerprint, or a preference for text
+it assigns high probability?
 
-% ¶3 contributions (3 bullets, one line each):
+We answer both with a pre-registered, controlled study: five sizes of the
+open Qwen2.5-Instruct family (0.5B--14B) judge their own generations
+against three LLM foils and human references across news summarization,
+open QA, and creative writing, under position counterbalancing,
+self-vs-self placebo controls, and log-probability scoring. Mechanism is
+probed from three directions: a paraphrase attack, a character-n-gram
+stylometric classifier, and a lower-perplexity decision rule evaluated
+both as a baseline and as a model of the judges' choices.
+
+The result is a dissociation. Asked directly, the models cannot pick out
+their own text from another model's --- accuracy is at or near chance at
+every size, and answers are dominated by position preferences so extreme
+that individual models choose the same answer letter on up to 99\% of
+no-right-answer placebo pairs. What improves with scale is not
+self-recognition but \emph{human-versus-machine} discrimination (AUROC
+0.58~$\rightarrow$~0.93 against human foils). Meanwhile, the information
+needed to pass the test is demonstrably inside the models: choosing
+whichever candidate has lower perplexity under the judge identifies its
+own text at 99.8\% for the two largest judges --- yet this rule agrees
+with the models' actual choices at chance level ($\kappa \leq 0.04$).
+Small open models \emph{have} near-perfect implicit self-information and
+fail to deploy it in their explicit self-reports.
+
 \noindent Our contributions:
 \begin{itemize}\itemsep0pt
-  \item the first self-recognition \emph{scale curve} within a single open
-        family, with 95\% CIs and a continuous-metric (AUROC) control;
-  \item paraphrase, stylometric, and likelihood-preference controls that
-        test whether the signal is surface style;
-  \item a released pipeline: frozen prompts, seeds, revisions, and all raw
-        judgments. % (+ optional: first non-English replication, §9.8)
+  \item the first self-recognition \textbf{scale curve} within a single
+        open family (0.5B--14B), with confidence intervals, a
+        threshold-free (AUROC) companion metric, and full position-bias
+        accounting;
+  \item an \textbf{implicit--explicit dissociation}: near-perfect
+        likelihood-based self-identification (0.998) coexisting with
+        chance-level verbal self-recognition ($\kappa \leq 0.04$ between
+        the two);
+  \item \textbf{mechanism controls} --- paraphrase, stylometry, likelihood
+        preference --- showing the implicit signal is largely
+        surface-lexical (0.998~$\rightarrow$~0.712 under paraphrase) and
+        that a bag-of-character-n-grams classifier outperforms every judge
+        on identical items;
+  \item a released pipeline: frozen prompts, seeds, pinned model
+        revisions, and all raw judgments, reproducing every figure with
+        one command.
 \end{itemize}
 
-% ----------------------------------------------------------------------------
-\section{Related Work}  % budget: 0.5 pp — three short paragraphs
+\section{Related Work}
 \paragraph{Self-recognition in LLMs.}
-\citet{panickssery2024llm} establish out-of-the-box self-recognition in
-GPT-4 and Llama-2 on summarization and link it to self-preference;
-\citet{davidson2024self} frame recognition between interacting agents as a
-safety question; \citet{laine2024me} include continuation-based
-self-recognition in a situational-awareness benchmark and show sensitivity
-to prompt phrasing; \citet{zhou2025implicit} report instruction-tuned
-models succeeding where base models fail. <One sentence positioning your
-study relative to these.>
+\citet{panickssery2024llm} established out-of-the-box self-recognition in
+GPT-4 and Llama-2 on summarization and linked recognition to
+self-preference under fine-tuning; our design is a small-model, controlled
+replication and extension of their pairwise and individual protocols.
+\citet{davidson2024self} framed recognition between interacting agents as
+a safety question; \citet{laine2024me} included continuation-based
+self-recognition in a broader situational-awareness benchmark and found
+sensitivity to prompt phrasing, motivating our multi-phrasing check.
+\citet{zhou2025implicit} report that instruction-tuned models succeed
+where base checkpoints fail; our base-vs-instruct ablation tests this
+claim on a second family and finds instead that the usable signal is
+largely present before instruction tuning.
 
 \paragraph{LLM-judge biases.}
-LLM judges exhibit position and verbosity biases \citep{zheng2023judging},
-which we counter with order counterbalancing and length-matched pairs.
+LLM judges exhibit position and verbosity biases \citep{zheng2023judging}.
+We counterbalance every pair across both orders, length-match candidates
+to within 25\%, and measure residual position bias directly with
+self-vs-self placebo pairs --- which proves decisive: several of our
+judges choose one answer letter on 90--99\% of placebo pairs, far beyond
+the position effects reported for larger chat models.
 
 \paragraph{Detection and metric artifacts.}
-Likelihood-based machine-text detection \citep{mitchell2023detectgpt}
-motivates our perplexity baseline; \citet{schaeffer2023emergent} show that
-claimed emergent jumps can be artifacts of thresholded metrics, motivating
-AUROC alongside accuracy.
+Our perplexity rule is a relative of likelihood-based machine-text
+detection \citep{mitchell2023detectgpt}, and our human-foil results
+connect self-recognition to that literature. \citet{schaeffer2023emergent}
+showed apparent emergent jumps can be artifacts of thresholded metrics; we
+therefore report AUROC computed from log-probability margins alongside
+accuracy throughout.
 
-% ----------------------------------------------------------------------------
-\section{Method}  % budget: 1 pp — write this section LAST (it is the densest)
+\section{Method}
 \paragraph{Models.}
-Judges: Qwen2.5-Instruct at 0.5B/1.5B/3B/7B/14B (4-bit NF4; revisions in
-App.~\ref{app:repro}). Foils: Llama-3.2-3B-Instruct, Gemma-2-9B-it,
-Mistral-7B-Instruct-v0.3, and human reference texts.
+Judges: Qwen2.5-Instruct at 0.5B, 1.5B, 3B, 7B, and 14B parameters, loaded
+in 4-bit NF4 so token log-probabilities remain accessible; exact revisions
+are pinned and listed in App.~\ref{app:repro}. Foils:
+Llama-3.2-3B-Instruct, Gemma-2-9B-it, and Mistral-7B-Instruct-v0.3 ---
+three families with distinct alignment styles --- plus human reference
+texts. Phi-3.5-mini (never judge or foil) paraphrases; all-MiniLM-L6-v2
+checks paraphrase fidelity. The base (non-instruct) 7B and 14B checkpoints
+serve an ablation, judging their instruct siblings' pairs through a
+completion-style prompt.
 
 \paragraph{Data.}
-200 frozen prompts per domain (seed 42): news summarization
-(CNN/DailyMail), open QA (Dolly-15k), story openings (WritingPrompts), each
-with a human reference (40--160 words). <Cite dataset papers if venue
-expects it.>
+200 prompts per domain, sampled with a fixed seed, filtered for length and
+language, then frozen (SHA-256 checksums committed before any generation):
+news summarization (CNN/DailyMail \citealp{hermann2015teaching}; gold
+highlights provide the human class), open QA
+\citep[Dolly-15k;][]{conover2023dolly}, and story openings
+\citep[WritingPrompts;][]{fan2018hierarchical}, with human stories
+truncated at a sentence boundary near 120 words. Human references span
+40--160 words.
 
 \paragraph{Generation and pairing.}
-Every model answers every prompt (temperature 0.8, top-$p$ 0.95, $\le$160
-new tokens, seed $=1000+\text{prompt id}$). All texts --- including human
-references --- pass one identical cleaning step (boilerplate, labels,
-truncated tails). Pairs are length-matched ($\le$25\% word-count
-difference) and deduplicated (ROUGE-L $\le 0.7$); exact per-cell $n$ in
-App.~\ref{app:cells}.
+Every judge and foil answers all 600 prompts (temperature 0.8, top-$p$
+0.95, $\leq$160 new tokens, seed $= 1000 + \text{prompt index}$; judges
+produce a second, differently-seeded sample for 150 prompts per domain to
+build placebo pairs). All texts --- including human references --- pass
+one identical cleaning step removing chat artifacts, boilerplate openers,
+and truncated final sentences; 91--100\% of texts survive. Pairs are
+same-prompt, length-matched ($\leq$25\% word-count difference) and
+deduplicated (ROUGE-L $\leq 0.7$; no pair was removed by this filter),
+yielding 41--195 pairs per (judge, foil, domain) cell --- human cells are
+smallest because humans write shorter than models --- and 204--542 pairs
+per judge$\times$foil after pooling domains (App.~\ref{app:cells}).
 
 \paragraph{Recognition protocols.}
-\emph{PPP} (primary): the judge sees the task and two responses, one its
-own, and answers A/B; every pair runs in both orders and the item score
-averages them. \emph{IPP} (secondary): single text, Yes/No, analysed with
-signal detection ($d'$, criterion). Decisions are read from first-token
-log-probabilities (summed over token spellings), which eliminates
-unparseable answers and yields a continuous margin for AUROC; free-text
-answers are additionally logged for refusal rates (App.~\ref{app:refusals}).
-Prompt templates verbatim in App.~\ref{app:prompts}; a three-phrasing
-robustness check accompanies the main cell.
+In the pairwise protocol (PPP, primary) the judge sees the task and two
+responses labeled A and B, one its own, and is asked which it wrote. Every
+pair runs in both orders; the item score is the mean of the two runs, so
+pure position preference produces ties, not wins. Decisions are read from
+first-token log-probabilities --- $\log p(\text{``A''})$ vs
+$\log p(\text{``B''})$, summed over tokenizer spellings --- which
+eliminates unparseable answers and yields a continuous margin; greedy
+free-text answers are also logged on a subsample for refusal accounting.
+The instruction template (App.~\ref{app:prompts}) is used verbatim; the
+headline cell is re-run under three phrasings. In the individual protocol
+(IPP, secondary) the judge sees one text and answers Yes/No (300 balanced
+items per judge), analysed with signal detection.
 
 \paragraph{Controls and baselines.}
-(i) SELF-vs-SELF placebo pairs measure position bias; (ii) a TF-IDF
-character 3--5-gram logistic regression (5-fold grouped CV) and a surface-
-features variant; (iii) a lower-perplexity rule under the judge, with
-Cohen's $\kappa$ against the judge's choices; (iv) a paraphrase attack:
-both texts rewritten by Phi-3.5-mini (cosine $\ge 0.80$ to original,
-length within 30\%), compared on the same items via McNemar's test.
+(i) \emph{Placebo}: self-vs-self pairs measure pure position bias.
+(ii) \emph{Stylometric classifier}: TF-IDF over character 3--5-grams with
+logistic regression under 5-fold grouped cross-validation (a pair never
+spans folds); its pair-level decision picks the candidate with the higher
+out-of-fold probability of judge authorship; a surface-features variant
+and cross-domain transfer test accompany it. (iii) \emph{Perplexity rule}:
+choose the candidate with lower mean per-token negative log-likelihood
+under the judge, conditioned on the original task; we report its accuracy
+and its agreement (Cohen's $\kappa$) with the judge's choices.
+(iv) \emph{Paraphrase attack}: both texts of every pair in the
+14B$\times$Llama cells are rewritten by the paraphraser (kept only if
+cosine $\geq 0.80$ to the original and within 30\% length; 444 of 542
+pairs survive) and re-judged on identical items.
 
 \paragraph{Statistics.}
-Wilson 95\% CIs on all accuracies; exact binomial tests vs.\ chance on
-decisive items, Holm-corrected across the judge$\times$foil family;
-bootstrap CIs (1{,}000 resamples over pairs) for $\kappa$ and AUROC;
-Spearman's $\rho$ (descriptive) for the scale trend. Power: $n{=}150$/cell
-detects true accuracy 0.615 with $\approx$79\% power
-(App.~\ref{app:power}).
+95\% Wilson intervals on every accuracy. Significance against chance uses
+exact binomial tests on decisively answered items (consistent across both
+orders --- ties carry no authorship evidence), Holm-corrected across the
+20 judge$\times$foil cells. Original-vs-paraphrased and
+judge-vs-classifier comparisons use exact McNemar tests on identical
+items. AUROC is computed over runs from the score
+$\log p(\text{A}) - \log p(\text{B})$ with label ``self shown in position
+A'' (position-invariant by construction), with 1{,}000-resample bootstrap
+CIs over pairs; $\kappa$ likewise. With $n{=}150$ per cell the exact
+binomial test has 79\% power against true accuracy 0.615; pooled cells
+($n{=}450$) reach the same power at 0.567 (App.~\ref{app:power}).
 
-% ----------------------------------------------------------------------------
-\section{Results}  % budget: 1.25 pp — one short paragraph per finding
+\section{Results}
+
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{../results/figures/fig1_scale_curve.pdf}
   \caption{Self-recognition vs.\ judge size (log scale), per foil, domains
   pooled. Left: order-averaged PPP accuracy with 95\% Wilson CIs. Right:
-  AUROC from the log-probability margin. <One sentence stating the
-  takeaway.>}
+  AUROC from the log-probability margin. Only the human-foil curve rises
+  with scale; LLM-foil curves stay near chance, with Gemma inverting below
+  it.}
   \label{fig:scale}
 \end{figure*}
 
-\paragraph{Scale (RQ1).}
-<Accuracy rises/does not rise with size: give the 0.5B and 14B pooled
-numbers with CIs, the Holm-corrected significance pattern, and Spearman's
-rho. State whether AUROC moves smoothly where accuracy jumps
-(Fig.~\ref{fig:scale}).>
-
-% Paste the auto-generated table body from results/tables/table1_main.tex:
 \begin{table*}[t]\centering\small
-  \begin{tabular}{llrccccc}
-    \toprule
-    Judge & Foil & $n$ & Acc.\ [95\% CI] & AUROC & Stylo. & PPL rule & $\kappa$ \\
-    \midrule
-    <paste rows from results/tables/table1\_main.tex> \\
-    \bottomrule
-  \end{tabular}
-  \caption{Main results: order-averaged PPP accuracy per judge and foil
-  (domains pooled) vs.\ the stylometric classifier and perplexity rule on
-  the same items. $^{*}$ = significant vs.\ chance after Holm correction.}
-  \label{tab:main}
+\begin{tabular}{llrccccc}
+\toprule
+Judge & Foil & $n$ & Acc.\ [95\% CI] & AUROC & Stylo. & PPL rule & $\kappa$ \\
+\midrule
+Qwen2.5-0.5B & Llama-3.2-3B & 376 & 0.503 [0.45, 0.55] & 0.531 & 0.968 & 0.660 & $-$0.00 \\
+Qwen2.5-0.5B & Gemma-2-9B & 345 & 0.501 [0.45, 0.55] & 0.559 & 0.983 & 0.875 & $-$0.01 \\
+Qwen2.5-0.5B & Mistral-7B & 346 & 0.501 [0.45, 0.55] & 0.555 & 0.974 & 0.740 & 0.00 \\
+Qwen2.5-0.5B & Human & 259 & 0.506 [0.45, 0.57] & 0.582 & 0.981 & 0.958 & 0.00 \\
+Qwen2.5-1.5B & Llama-3.2-3B & 446 & 0.507 [0.46, 0.55] & 0.511 & 0.975 & 0.482 & $-$0.03 \\
+Qwen2.5-1.5B & Gemma-2-9B & 414 & 0.499 [0.45, 0.55] & 0.456 & 0.964 & 0.742 & $-$0.02 \\
+Qwen2.5-1.5B & Mistral-7B & 398 & 0.519 [0.47, 0.57] & 0.542 & 0.965 & 0.583 & 0.04 \\
+Qwen2.5-1.5B & Human & 267 & 0.530 [0.47, 0.59] & 0.687 & 0.966 & 0.951 & $-$0.00 \\
+Qwen2.5-3B & Llama-3.2-3B & 467 & 0.522 [0.48, 0.57] & 0.517 & 0.940 & 0.955 & 0.02 \\
+Qwen2.5-3B & Gemma-2-9B & 470 & 0.459 [0.41, 0.50] & 0.437 & 0.919 & 0.983 & 0.01 \\
+Qwen2.5-3B & Mistral-7B & 452 & 0.496 [0.45, 0.54] & 0.501 & 0.905 & 0.962 & $-$0.01 \\
+Qwen2.5-3B & Human & 204 & 0.576$^{*}$ [0.51, 0.64] & 0.668 & 0.966 & 0.995 & 0.00 \\
+Qwen2.5-7B & Llama-3.2-3B & 523 & 0.500 [0.46, 0.54] & 0.491 & 0.958 & 0.996 & 0.00 \\
+Qwen2.5-7B & Gemma-2-9B & 522 & 0.493 [0.45, 0.54] & 0.361 & 0.923 & 1.000 & 0.00 \\
+Qwen2.5-7B & Mistral-7B & 477 & 0.523$^{*}$ [0.48, 0.57] & 0.655 & 0.925 & 0.998 & 0.00 \\
+Qwen2.5-7B & Human & 248 & 0.625$^{*}$ [0.56, 0.68] & 0.771 & 0.984 & 1.000 & 0.00 \\
+Qwen2.5-14B & Llama-3.2-3B & 542 & 0.574$^{*}$ [0.53, 0.61] & 0.630 & 0.972 & 0.998 & 0.00 \\
+Qwen2.5-14B & Gemma-2-9B & 526 & 0.487 [0.44, 0.53] & 0.457 & 0.943 & 1.000 & 0.00 \\
+Qwen2.5-14B & Mistral-7B & 508 & 0.559$^{*}$ [0.52, 0.60] & 0.629 & 0.931 & 0.996 & 0.01 \\
+Qwen2.5-14B & Human & 267 & 0.822$^{*}$ [0.77, 0.86] & 0.932 & 0.978 & 1.000 & 0.00 \\
+\bottomrule
+\end{tabular}
+\caption{Order-averaged PPP accuracy per judge and foil (domains pooled)
+with 95\% Wilson CIs; $^{*}$ = significant vs.\ chance after Holm
+correction across all 20 cells. Stylo.\ = pairwise accuracy of the
+character n-gram classifier on the same items (beats the judge in every
+cell; McNemar $p<.001$). PPL rule = accuracy of choosing the
+lower-perplexity candidate under the judge. $\kappa$ = agreement between
+the judge's choices and the PPL rule.}
+\label{tab:main}
 \end{table*}
 
-\paragraph{Mechanism: paraphrase (RQ2).}
+\paragraph{Position bias dominates the explicit test.}
+On placebo pairs --- both texts written by the judge --- models do not
+hover near 50\%: the 0.5B and 7B choose letter ``A'' on 98.9\% of runs,
+the 1.5B chooses ``B'' on 90.3\%, the 3B ``B'' on 65.1\%, and the 14B
+``A'' on 72.0\% (all CIs exclude 0.5; App.~\ref{app:bias}). The bias is
+order-invariant, i.e.\ attached to the letter, not the text.
+Counterbalancing absorbs it --- position-consistent answering yields ties
+--- but leaves only 1--44\% of items decisively answered (0.5B: 1.0\%;
+14B: 44.1\%). Against LLM foils, order-averaged accuracy is then at or
+near chance at every size: pooled over the three LLM foils, 0.502 (0.5B),
+0.508 (1.5B), 0.492 (3B), 0.505 (7B), 0.540 (14B). Six of twenty
+judge$\times$foil cells survive Holm correction
+(Table~\ref{tab:main}), all at 3B or larger: the three human-foil cells at
+3B--14B, plus 7B--Mistral, 14B--Llama, and 14B--Mistral.
+
+\paragraph{What scales is human-versus-machine discrimination.}
+Against human foils, discrimination rises monotonically with size ---
+AUROC 0.582, 0.687, 0.668, 0.771, 0.932 (Spearman $\rho = 0.9$; accuracy
+$\rho = 1.0$), reaching 0.822 [0.772, 0.863] accuracy at 14B
+(Fig.~\ref{fig:scale}). No comparable trend exists against LLM foils
+(AUROC $\rho$ from $-0.4$ to $0.5$ and accuracy $\rho$ from $-0.7$ to
+$0.7$, with signs disagreeing across foils), and accuracy and AUROC move
+together, so the growth is not a thresholding artifact
+\citep{schaeffer2023emergent}. The models are increasingly able to tell
+machine text from human text --- a capability continuous with
+machine-generated-text detection \citep{mitchell2023detectgpt} --- rather
+than \emph{their own} text from another model's. One foil produces
+systematic \emph{inversion}: against Gemma-2-9B-it, margin-AUROC falls
+significantly below chance for the 7B (0.361 [0.326, 0.394]) and the 14B
+(0.457 [0.425, 0.485]), with the 3B's accuracy pointing the same way
+(0.459 [0.414, 0.504]; Holm-corrected $p = .074$) --- the judges' graded
+preference treats Gemma's text as more ``self'' than their own.
+
+\paragraph{A trivial classifier beats every judge.}
+The character-n-gram classifier's pair-level accuracy is 0.90--0.98 in
+every cell --- higher than every judge in every cell, including the 14B's
+best (McNemar $p < .001$ in all 20 comparisons; Table~\ref{tab:main}).
+Even the surface-features variant (sentence length, punctuation rates,
+type-token ratio) reaches 0.65--0.98 single-text accuracy, and classifiers
+trained on one domain transfer above chance to the others (0.54--0.65
+single-text for the headline judge--foil pair), so the authorship
+signature is model-general surface style. By the
+pre-registered interpretation rule, the information required for
+``self-recognition'' is present in surface statistics, and privileged
+self-access is not required to explain any positive result here.
+
+\paragraph{The models have the information and do not use it.}
+The lower-perplexity rule --- pick the candidate more probable under the
+judge's own weights, given the task --- identifies SELF with pooled
+accuracy 0.795 (0.5B), 0.661 (1.5B), 0.970 (3B), 0.998 (7B), and 0.998
+(14B). Near-ceiling performance is itself unsurprising --- the self text
+was \emph{sampled from} the judge, so high self-likelihood borders on
+tautology (cf.\ likelihood-based detection;
+\citealp{mitchell2023detectgpt}) --- but that is exactly what makes the
+rule diagnostic: it upper-bounds what any decision process consulting the
+model's own likelihoods could achieve, and for every judge $\geq$3B the
+rule exceeds the judge's own accuracy by 40+ points on identical items. A
+judge actually consulting its likelihoods would sit near 0.97--1.00; none
+comes close. Agreement statistics point the same way but must be read with
+care: $|\kappa| \leq 0.037$ in all 20 cells (bootstrap CIs hugging zero),
+yet $\kappa$ is partly mechanical here, since agreement measures saturate
+toward zero when either party is near-constant --- and both saturations
+occur (the rule almost always answers ``self'' at $\geq$3B; the 0.5B and
+7B almost always answer one letter). The pre-registered $\kappa > 0.4$
+test of H4 was therefore incapable of succeeding in this regime; the
+accuracy gap, not $\kappa$, carries the dissociation. It is sharpest for
+Gemma: the rule says ``self'' with accuracy 1.000 while the judges' graded
+preference runs \emph{below} chance, so the explicit channel is not
+tracking likelihood at all. The implicit signal also predates alignment:
+base (non-instruct) 7B and 14B checkpoints score 0.864 and 0.860 under the
+same rule, and the base 14B already separates its sibling's text from
+human text at 0.842 AUROC --- in tension, for this family, with the report
+that base models fail where instruct models succeed
+\citep{zhou2025implicit}, though our base judging necessarily uses a
+completion-style prompt rather than a chat instruction.
+
+\paragraph{Paraphrase locates the signal in surface form.}
+Rewriting both candidates (content preserved) collapses the implicit rule
+from 0.998 [0.990, 1.000] to 0.712 [0.668, 0.752] on the surviving 444
+pairs --- most of the self-likelihood signal is wording, though a reliable
+residue survives. The verbal channel shows no significant change (pooled
+0.587 $\rightarrow$ 0.544; McNemar $b{=}52$, $c{=}45$, $p = .54$;
+per-domain $p = .42$--$.86$; Fig.~\ref{fig:para}) --- there was no
+reliable verbal signal to destroy in this cell.
+
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{../results/figures/fig2_paraphrase.pdf}
-  \caption{PPP accuracy on the same pairs before vs.\ after both candidates
-  are paraphrased; McNemar $p$ above each domain.}
+  \caption{PPP accuracy on identical pairs before vs.\ after both
+  candidates are paraphrased (14B judge vs.\ Llama foil); McNemar $p$
+  above each domain. The verbal channel shows no significant collapse ---
+  it carried no reliable signal; the implicit (perplexity) signal drops
+  from 0.998 to 0.712 (\S4).}
   \label{fig:para}
 \end{figure}
-<Original vs paraphrased accuracies with CIs and McNemar p per domain
-(Fig.~\ref{fig:para}); interpret: collapse => surface form; survival =>
-deeper signal.>
 
-\paragraph{Mechanism: cheap baselines (RQ2).}
-<Stylometric single-text and pairwise accuracies vs the judge on the same
-items (McNemar); the surface-features variant; the cross-domain transfer
-result. Then the perplexity rule: its accuracy and kappa with the judge's
-choices (with bootstrap CI). State plainly whether H4's kappa > 0.4 held.>
+\paragraph{Secondary analyses.}
+The Yes/No protocol collapses into pure response bias at every size: the
+0.5B answers ``Yes, I wrote this'' to 142 of its own 150 texts (95\%) and
+133 of 150 others' (89\%), while the 3B, 7B, and 14B answer ``Yes'' to at
+most 1\% of anything
+(the 7B says yes to 0 of its own 150 texts and 2 foils'); sensitivity is
+uninterpretable at such degenerate criteria, and margin-based AUROC stays
+$\leq 0.62$. Accuracy alone would have called the 0.5B a 94\%-hit-rate
+self-recognizer --- the signal-detection framing exists precisely for
+this. Refusals: 0.0\% of 1{,}732 logged free-text answers, with
+free-text--log-probability agreement of 87--99\%. Instruction
+re-phrasings move the headline cell's accuracy by 0.065 (0.510--0.575),
+consistent with \citet{laine2024me}.
 
-\paragraph{Secondary: IPP and biases.}
-<d', criterion, and AUROC per judge; note any high-yes-rate/low-d' pattern.
-One sentence: placebo ~50% (App.), position-consistency, refusal trend
-with scale.>
+\section{Discussion}
+Three channels, three answers. The models' \emph{likelihoods} contain
+near-perfect self-information (0.998). Their \emph{forced-choice answers}
+are ruled by letter-level position bias, are matched or beaten by a
+bag-of-character-n-grams, and do not correlate with their own likelihoods
+($\kappa \approx 0$). And the component that genuinely strengthens with
+scale is \emph{human-versus-machine} style discrimination, present already
+in base checkpoints. On this evidence, passing or failing the behavioral
+mirror test in this regime licenses no claim about self-access: the test
+measures position bias, generic machine-text detection, and surface style
+--- each of which any competent next-token predictor acquires without
+anything self-like. Our pre-registered prediction (a deflationary outcome)
+was right that surface statistics suffice and that the implicit signal is
+largely lexical, but its specific mechanism test failed twice over: verbal
+choices are not likelihood expression (the 40-point accuracy gap), and the
+$\kappa > 0.4$ criterion we pre-registered could not have detected such
+expression anyway once the rule saturated (\S4) --- a design lesson for
+future mirror-test studies.
 
-% ----------------------------------------------------------------------------
-\section{Discussion}  % budget: 0.3 pp
-<What the mechanism results imply for interpreting mirror-test claims.>
-% The SECOND and last permitted consciousness sentence (hedged), e.g.:
-% "Behavioral mirror tests, without mechanism controls, cannot license
-%  claims about machine self-awareness."
-<One sentence connecting to evaluator self-preference / safety
-(\citealp{panickssery2024llm}).>
+The dissociation matters practically. Self-preference bias in LLM
+evaluators has been attributed to self-recognition
+\citep{panickssery2024llm}; our results suggest the operative substrate
+need not be any explicit recognition --- likelihood-level familiarity
+exists in abundance even where verbal recognition is absent, so evaluator
+contamination cannot be ruled out by showing a model ``cannot recognize
+itself.'' Behavioral mirror tests without mechanism controls cannot
+license claims about machine self-awareness; we release the full pipeline
+so stronger versions of the test can be built.
 
-% Pick ONE of the protocol §13 conclusion paragraphs matching your outcome
-% and adapt it here (they are reproduced in docs/06_writing_guide.md and
-% the protocol):
-%   Outcome 1: signal survives controls  -> "Contrary to a pure-stylometry
-%              account, ..."
-%   Outcome 2: deflationary              -> "We revisited the mirror test
-%              under controls prior work lacked, ..."
-%   Outcome 3: null                      -> "Across five model sizes ...
-%              we find no reliable self-recognition ..."
-
-\section*{Limitations}  % mandatory at *CL venues; protocol §14 verbatim list
-\begin{itemize}\itemsep0pt
-  \item \textbf{Behavior, not experience.} Nothing here measures subjective
-        experience; ``self'' denotes only ``text generated by the same
-        weights.''
-  \item \textbf{No episodic memory.} The judge never ``remembers'' writing;
-        the test measures identification of self-typical text --- the only
-        coherent version of the task for stateless models.
-  \item \textbf{Single family.} Scale conclusions are within one training
-        recipe; other families may differ.
-  \item \textbf{Decoding sensitivity.} Results are at temperature 0.8
-        generation / greedy judging.
-  \item \textbf{Prompt sensitivity.} Mitigated but not eliminated by the
-        three-phrasing check.
-  \item \textbf{Possible pretraining contamination} of the prompt datasets;
-        all models saw the same data, but we note it.
-  \item \textbf{English-centric} <unless the Urdu extension was run>.
-  \item \textbf{Modest per-cell $n$} (150--200); effects smaller than
-        $\sim$0.06 above chance may be missed (App.~\ref{app:power}).
-\end{itemize}
+\section*{Limitations}
+Our findings are behavioral; nothing here measures subjective experience,
+and ``self'' denotes only text generated by the same weights. The judge
+has no episodic memory of writing; the test can only measure
+identification of self-\emph{typical} text. Scale conclusions are within
+one training recipe (Qwen2.5) and one decoding setting (temperature 0.8
+generation, greedy judging). The paraphrase attack covers one
+representative cell (14B$\times$Llama, three domains); the base-model
+ablation defines SELF as the instruct sibling's text and uses a
+completion-style prompt, two deliberate interpretive choices that limit
+direct comparison with chat-prompted judges. Cohen's $\kappa$ between
+judges and the perplexity rule is reported for completeness but is
+uninformative under the observed marginal saturation (\S4). Human-foil
+cells are smaller (41--147 pairs per domain) because length-matching removes verbose-model-vs-concise-human
+pairs. Prompt datasets likely occur in all models' pretraining data
+(shared across authors, but uncontrolled). Extreme response biases make
+IPP sensitivity indices uninformative at several sizes. All materials are
+English; per-cell power detects effects $\geq{\sim}6$ points above chance,
+and smaller effects may be missed.
 
 % \section*{Acknowledgments}  % camera-ready only
-% <supervisor, the two Urdu fluency checkers, compute (free Colab/Kaggle)>
+% Supervisor; free-tier compute (Google Colab, Kaggle; ~53 GPU-hours).
 
 \bibliography{references}
 
-% ============================================================================
 \appendix
+
 \section{Prompt Templates}\label{app:prompts}
-% Paste VERBATIM from configs/models.yaml (protocol §8.1: templates must be
-% in the appendix): the PPP system+user template (phrasing 0), the two
-% alternative phrasings, the IPP template, the paraphrase instruction, and
-% the base-model completion template.
-<verbatim templates here>
+% Paste verbatim from configs/models.yaml: PPP system+user (phrasing 0),
+% the two alternative phrasings, the IPP template, the paraphrase
+% instruction, and the base-model completion template.
+\emph{Verbatim templates from the released configuration file:} the PPP
+system and user templates (phrasing 0), both alternative phrasings, the
+IPP template, the paraphrase instruction, and the base-model completion
+template. \texttt{configs/models.yaml} in the repository is authoritative.
 
 \section{Per-cell Counts and Cleaning Statistics}\label{app:cells}
-% From data/pairs/pairs_report.json: pairs kept per (judge, foil, domain),
-% drops by reason (length mismatch / near-duplicate), cleaning survival and
-% boilerplate-hit rates per author.
-<table here>
+Pairs kept per (judge, foil, domain) cell range 41--195 (LLM-foil cells
+103--195; human-foil cells 41--147, reduced by the 25\% length-match
+filter because human references are shorter than model outputs); the
+ROUGE-L near-duplicate filter removed zero pairs. Cleaning survival was
+91--100\% per author$\times$domain; up to 87\% of Dolly answers carried a
+removable boilerplate opener. Full tables:
+\texttt{data/pairs/pairs\_report.json}.
 
-\section{Placebo, Consistency, and Refusal Rates}\label{app:refusals}
-% From results/tables/placebo.csv, refusals.csv + the consistency column of
-% main_ppp.csv. One sentence: placebo within CI of 50% everywhere (or the
-% honest alternative + what you did about it).
-<tables here>
+\section{Placebo, Consistency, and Refusals}\label{app:bias}
+Placebo (self-vs-self) chose-``A'' rates: 0.989 (0.5B), 0.097 (1.5B),
+0.349 (3B), 0.989 (7B), 0.720 (14B); all 95\% CIs exclude 0.5, and rates
+are identical across presentation orders (letter, not content,
+preference). Position-consistency (fraction of pairs answered decisively
+under both orders): 0.010, 0.130, 0.395, 0.086, 0.441. Refusal rate 0.0\%
+of 1{,}732 logged free-text answers; free-text vs.\ log-probability
+agreement 0.873--0.987.
 
 \section{Per-domain Results and Phrasing Robustness}
-% results/tables/ppp_by_domain.csv and phrasing_robustness.csv.
-<tables here>
+Per-domain accuracies: \texttt{results/tables/ppp\_by\_domain.csv}.
+Three instruction phrasings on the 14B$\times$Llama cell give mean
+accuracy 0.553, range 0.065 (0.510--0.575).
 
 \section{Reproducibility}\label{app:repro}
-% Model HF ids + pinned revisions (from configs/models.yaml + generation
-% records), decoding parameters, seeds (generation 1000+idx, placebo
-% 2000+idx, sampling 42), library versions (env_snapshot.txt), hardware
-% (free T4 / Kaggle 2xT4), and the one command that reproduces Fig. 1:
-%     python src/06_stats.py
-<table here>
+Model Hugging Face ids with pinned commit revisions, decoding parameters,
+and the seed scheme (dataset sampling 42; generation $1000+$prompt index;
+placebo $2000+$index; paraphrase $3000+$index) are in
+\texttt{configs/models.yaml}. All experiments ran in 4-bit NF4 on free-tier
+GPUs (Colab T4, Kaggle 2$\times$T4; $\approx$53 GPU-hours total).
+\texttt{python src/06\_stats.py} reproduces every number, table, and
+figure from the released raw judgments (32{,}580 pairwise runs, 1{,}500
+Yes/No items, 12{,}114 perplexity scores).
 
 \section{Power Analysis}\label{app:power}
-% results/tables/power_analysis.csv: exact binomial power at n=150 (0.615),
-% n=450 pooled (0.567), n~780 (0.55); state the design implication.
-<numbers here>
+Exact binomial test, $\alpha = .05$, two-sided: $n{=}150$ gives power
+0.788 at true accuracy 0.615; $n{=}450$ (pooled domains) gives 0.795 at
+0.567; $n{=}780$ gives 0.796 at 0.550.
 
 \end{document}

@@ -105,9 +105,35 @@
 }
 
 % ---------------------------------------------------------------------------
-% Dataset citations — add if the venue expects them (most *CL venues do):
-% CNN/DailyMail: Hermann et al. 2015 (NIPS) + See et al. 2017 (ACL);
-% databricks-dolly-15k: Conover et al. 2023 (Databricks blog/HF card);
-% WritingPrompts: Fan et al. 2018 (ACL, "Hierarchical Neural Story
-% Generation"). Verify exact BibTeX on the ACL Anthology.
+% Dataset citations (cited in Method) — VERIFY exact BibTeX on the ACL
+% Anthology / publisher pages before submission:
 % ---------------------------------------------------------------------------
+
+@inproceedings{hermann2015teaching,
+  title     = {Teaching Machines to Read and Comprehend},
+  author    = {Hermann, Karl Moritz and Ko{\v{c}}isk{\'y}, Tom{\'a}{\v{s}} and
+               Grefenstette, Edward and Espeholt, Lasse and Kay, Will and
+               Suleyman, Mustafa and Blunsom, Phil},
+  booktitle = {Advances in Neural Information Processing Systems (NIPS)},
+  year      = {2015},
+  note      = {VERIFY; CNN/DailyMail source}
+}
+
+@misc{conover2023dolly,
+  title        = {Free Dolly: Introducing the World's First Truly Open
+                  Instruction-Tuned {LLM}},
+  author       = {Conover, Mike and Hayes, Matt and Mathur, Ankit and Xie,
+                  Jianwei and Wan, Jun and Shah, Sam and Ghodsi, Ali and
+                  Wendell, Patrick and Zaharia, Matei and Xin, Reynold},
+  howpublished = {Databricks blog},
+  year         = {2023},
+  note         = {VERIFY; databricks-dolly-15k}
+}
+
+@inproceedings{fan2018hierarchical,
+  title     = {Hierarchical Neural Story Generation},
+  author    = {Fan, Angela and Lewis, Mike and Dauphin, Yann},
+  booktitle = {Proceedings of ACL},
+  year      = {2018},
+  note      = {VERIFY; WritingPrompts source}
+}
