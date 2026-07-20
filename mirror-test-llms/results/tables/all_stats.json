@@ -1,6 +1,6 @@
 {
-  "created_at": "2026-07-19T15:23:33",
-  "n_runs": 29916,
+  "created_at": "2026-07-20T10:28:21",
+  "n_runs": 32580,
   "main_ppp": [
     {
       "judge": "qwen2.5-0.5b-instruct",
@@ -1639,7 +1639,53 @@
       "auroc_ci_hi": 0.4943655071043606
     }
   ],
-  "paraphrase": [],
+  "paraphrase": [
+    {
+      "judge": "qwen2.5-14b-instruct",
+      "foil": "llama-3.2-3b-instruct",
+      "domain": "news",
+      "n_pairs": 172,
+      "acc_orig": 0.625,
+      "orig_ci_lo": 0.5506616310191448,
+      "orig_ci_hi": 0.6938768315731565,
+      "acc_para": 0.5697674418604651,
+      "para_ci_lo": 0.4950481800540244,
+      "para_ci_hi": 0.641438403718423,
+      "flips_to_wrong": 29,
+      "flips_to_right": 24,
+      "p_mcnemar": 0.5831321542611758
+    },
+    {
+      "judge": "qwen2.5-14b-instruct",
+      "foil": "llama-3.2-3b-instruct",
+      "domain": "dolly",
+      "n_pairs": 151,
+      "acc_orig": 0.5463576158940397,
+      "orig_ci_lo": 0.46678398348297956,
+      "orig_ci_hi": 0.6236310778747925,
+      "acc_para": 0.5331125827814569,
+      "para_ci_lo": 0.45370535369886067,
+      "para_ci_hi": 0.6108768329852621,
+      "flips_to_wrong": 9,
+      "flips_to_right": 5,
+      "p_mcnemar": 0.4239501953125011
+    },
+    {
+      "judge": "qwen2.5-14b-instruct",
+      "foil": "llama-3.2-3b-instruct",
+      "domain": "wp",
+      "n_pairs": 121,
+      "acc_orig": 0.5826446280991735,
+      "orig_ci_lo": 0.4935627397999339,
+      "orig_ci_hi": 0.6666404506219704,
+      "acc_para": 0.5206611570247934,
+      "para_ci_lo": 0.4323901138147221,
+      "para_ci_hi": 0.6076606837907541,
+      "flips_to_wrong": 14,
+      "flips_to_right": 16,
+      "p_mcnemar": 0.8555355519056391
+    }
+  ],
   "phrasing_robustness": [
     {
       "judge": "qwen2.5-14b-instruct",
@@ -1682,10 +1728,10 @@
     },
     {
       "judge": "qwen2.5-14b-instruct",
-      "n_freetext_logged": 617,
+      "n_freetext_logged": 917,
       "refusal_rate": 0.0,
       "unparseable_rate": 0.0,
-      "parse_agrees_with_logprob": 0.9886547811993517
+      "parse_agrees_with_logprob": 0.9890948745910578
     }
   ],
   "scale_trend": [
