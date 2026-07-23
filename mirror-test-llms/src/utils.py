@@ -535,6 +535,17 @@ def load_model_and_tokenizer(hf_id: str, revision: str | None = None, four_bit: 
     # device_map="auto" also spreads layers across BOTH GPUs on Kaggle's 2xT4
     # runtime - that is what makes the 14B judge fit there.
     kwargs: dict = {"revision": revision, "device_map": "auto"}
+    # Optional explicit sharding budget for models that MUST split across
+    # GPUs (e.g. gemma-2-27b-it in 4-bit on 2xT4). Set the env var
+    # MIRROR_MAX_MEMORY to a comma list of per-GPU budgets, e.g. "13GiB,13GiB"
+    # (a CPU spill budget of 24GiB is added automatically). Additive and
+    # env-gated: runs that do not set it use the exact published code path.
+    if os.environ.get("MIRROR_MAX_MEMORY"):
+        budgets = [b.strip() for b in os.environ["MIRROR_MAX_MEMORY"].split(",")]
+        mm: dict = {i: b for i, b in enumerate(budgets)}
+        mm["cpu"] = "24GiB"
+        kwargs["max_memory"] = mm
+        print(f"[load] explicit shard budget: {mm}")
     mode = ""
     if torch.cuda.is_available() and four_bit:
         try:
