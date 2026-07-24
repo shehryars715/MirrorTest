@@ -36,10 +36,10 @@ def judge_foils(judge_key):
 PARAMS = {k: v for k, v in QWEN_JUDGES}
 PARAMS.update({j["key"]: j["params_b"] for j in NEW_JUDGES})
 
-# Judges of interest = the instruct scale families only. Base checkpoints
-# (keys ending in '-base') are a separate mechanism ablation the paper keeps in
-# base_vs_instruct.csv, NOT in Table 1 — excluding them keeps the Holm family
-# and the scale curve exactly comparable to the published main table.
+# Judges of interest = the instruct judges only (5 Qwen sizes + the 3 new). Base
+# checkpoints (keys ending in '-base') are a separate mechanism ablation the paper
+# keeps in base_vs_instruct.csv, NOT in Table 1 — excluding them keeps the Holm
+# family exactly comparable to the published main table.
 JUDGES_OF_INTEREST = [k for k, _ in QWEN_JUDGES] + [j["key"] for j in NEW_JUDGES]
 
 # All judges that actually have judgments on disk (partial sessions welcome).

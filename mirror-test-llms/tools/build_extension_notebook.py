@@ -22,7 +22,7 @@ Cells (in order):
     03_bootstrap.py      fail-loud dataset discovery, patched config, imports
     04_orchestrator.py   resumable task DAG driving the published src/ scripts
     05_stats_outputs.py  extended_table1.csv + dissociation_summary.csv + raw
-    06_scale_curves.py   scale_curves.png (Qwen2.5 vs Gemma-2)
+    06_dissociation.py   dissociation.png (implicit vs explicit, per recipe)
     07_finalize.py       run_report.txt + closing summary
 """
 
@@ -44,7 +44,7 @@ CELLS = [
     ("03_bootstrap.py", "code"),
     ("04_orchestrator.py", "code"),
     ("05_stats_outputs.py", "code"),
-    ("06_scale_curves.py", "code"),
+    ("06_dissociation.py", "code"),
     ("07_finalize.py", "code"),
 ]
 

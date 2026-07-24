@@ -7,14 +7,15 @@
 # wrong "not-done" verdict costs at most one model load.
 #
 # Per new judge J (foils P = family-excluded pool + human):
-#   gen:J    01_generate.py   --models J --placebo        (only s2 is new for
-#                                                           Tier-1 judges)
+#   gen:J    01_generate.py   --models J --placebo        (only s2 is new — the
+#                                                           s1 foil text exists)
 #   pairs:J  02_build_pairs.py --judges J --foils P...     (PPP + placebo + IPP)
 #   ppp:J    03_judge_ppp.py   --judge J --include-placebo
 #   ipp:J    04_judge_ipp.py   --judge J
 #   ppl:J    05_baselines.py perplexity --judge J
 #   stylo:J  05_baselines.py stylometric --judge J         (CPU)
-# gemma-2-27b-it is scheduled LAST and sharded across both T4s.
+# Tier 1 only: every judge is <=9B and fits on a single T4 in 4-bit — no
+# sharding, no 27B.
 # ===========================================================================
 
 import gc, json, queue, subprocess, threading, time
@@ -31,8 +32,7 @@ EXT = ["--config", str(EXT_CONFIG)]
 GEN, PAIRS, JUDG, BASE = (utils.GENERATIONS_DIR, utils.PAIRS_DIR,
                           utils.JUDGMENTS_DIR, utils.BASELINES_DIR)
 
-ACTIVE_JUDGES = [j for j in NEW_JUDGES
-                 if not (j["key"] == "gemma-2-27b-it" and not ENABLE_27B)]
+ACTIVE_JUDGES = list(NEW_JUDGES)
 
 
 def hours_left():
@@ -110,28 +110,23 @@ def stylo_done(key):
 
 
 # ------------------------------- task table ---------------------------------
-def T(tid, cmd, done_fn, after=(), gpu=True, gated=False, env_extra=None, est=90):
+def T(tid, cmd, done_fn, after=(), gpu=True, gated=False, est=90):
     return dict(id=tid, cmd=cmd, done_fn=done_fn, after=list(after), gpu=gpu,
-                gated=gated, env_extra=env_extra or {}, est=est)
+                gated=gated, est=est)
 
 
 GEN_EST = {"llama-3.2-3b-instruct": 60, "gemma-2-9b-it": 90,
-           "mistral-7b-instruct-v0.3": 70, "gemma-2-2b-it": 90,
-           "gemma-2-27b-it": 200}
+           "mistral-7b-instruct-v0.3": 70}
 JUDGE_EST = {"llama-3.2-3b-instruct": 60, "gemma-2-9b-it": 110,
-             "mistral-7b-instruct-v0.3": 90, "gemma-2-2b-it": 60,
-             "gemma-2-27b-it": 240}
-TASKS, PREFLIGHT = [], []
+             "mistral-7b-instruct-v0.3": 90}
+TASKS = []
 for j in ACTIVE_JUDGES:
     key = j["key"]
     P = foils_for(key)
-    shard = bool(j.get("shard"))
-    env_extra = {"MIRROR_MAX_MEMORY": MAX_MEMORY_SHARDED} if shard else {}
-    gated = family_of(key) in ("gemma", "llama")
+    gated = family_of(key) in ("gemma", "llama")   # mistral-v0.3 is not gated
     TASKS.append(T(f"gen:{key}", PY + [str(SRC_DIR / "01_generate.py")] + EXT
                    + ["--models", key, "--placebo"],
-                   (lambda k=key: gen_done(k)), gated=gated, env_extra=env_extra,
-                   est=GEN_EST.get(key, 120)))
+                   (lambda k=key: gen_done(k)), gated=gated, est=GEN_EST.get(key, 120)))
     TASKS.append(T(f"pairs:{key}", PY + [str(SRC_DIR / "02_build_pairs.py")] + EXT
                    + ["--judges", key, "--foils", *P, "--domains", *DOMAINS],
                    (lambda k=key: pairs_done(k)), after=[f"gen:{key}"], gpu=False,
@@ -139,26 +134,25 @@ for j in ACTIVE_JUDGES:
     TASKS.append(T(f"ppp:{key}", PY + [str(SRC_DIR / "03_judge_ppp.py")] + EXT
                    + ["--judge", key, "--include-placebo"],
                    (lambda k=key: ppp_done(k)), after=[f"pairs:{key}"],
-                   gated=gated, env_extra=env_extra, est=JUDGE_EST.get(key, 120)))
+                   gated=gated, est=JUDGE_EST.get(key, 120)))
     if RUN_IPP:
         TASKS.append(T(f"ipp:{key}", PY + [str(SRC_DIR / "04_judge_ipp.py")] + EXT
                        + ["--judge", key],
                        (lambda k=key: ipp_done(k)), after=[f"pairs:{key}"],
-                       gated=gated, env_extra=env_extra, est=25))
+                       gated=gated, est=25))
     TASKS.append(T(f"ppl:{key}", PY + [str(SRC_DIR / "05_baselines.py"), "perplexity"]
                    + EXT + ["--judge", key],
                    (lambda k=key: ppl_done(k)), after=[f"pairs:{key}"],
-                   gated=gated, env_extra=env_extra, est=JUDGE_EST.get(key, 120) // 2))
+                   gated=gated, est=JUDGE_EST.get(key, 120) // 2))
     if RUN_STYLOMETRY:
         TASKS.append(T(f"stylo:{key}", PY + [str(SRC_DIR / "05_baselines.py"),
                        "stylometric"] + EXT + ["--judge", key],
                        (lambda k=key: stylo_done(k)), after=[f"pairs:{key}"],
                        gpu=False, est=8))
 
-# Order: Tier 1 (cheap, existing text) -> Tier 2 2B -> 27B LAST. Within a judge
-# the `after` deps already serialise gen->pairs->{ppp,ipp,ppl,stylo}.
-_order = {"llama-3.2-3b-instruct": 0, "mistral-7b-instruct-v0.3": 1,
-          "gemma-2-9b-it": 2, "gemma-2-2b-it": 3, "gemma-2-27b-it": 9}
+# Order: cheapest judge first; within a judge the `after` deps serialise
+# gen -> pairs -> {ppp, ipp, ppl, stylo}.
+_order = {"llama-3.2-3b-instruct": 0, "mistral-7b-instruct-v0.3": 1, "gemma-2-9b-it": 2}
 TASKS.sort(key=lambda t: (_order.get(t["id"].split(":", 1)[1], 5),
                           t["id"].startswith(("ppp", "ipp", "ppl", "stylo"))))
 
@@ -180,14 +174,10 @@ def save_state():
 
 def run_task(t, seq, n):
     tail = deque(maxlen=80)
-    env = dict(os.environ)
-    env.update(t["env_extra"])
-    if t["env_extra"]:
-        print(f"{clock()} [env] {t['env_extra']}", flush=True)
     print(f"\n{clock()} ===== {seq}/{n}: {t['id']} (est ~{t['est']}m | "
           f"{hours_left():.1f}h left) =====\n{clock()} $ {' '.join(t['cmd'])}", flush=True)
     start = time.monotonic()
-    proc = subprocess.Popen(t["cmd"], cwd=str(REPO_DIR), env=env,
+    proc = subprocess.Popen(t["cmd"], cwd=str(REPO_DIR), env=dict(os.environ),
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             text=True, bufsize=1)
     q = queue.Queue()
@@ -230,14 +220,11 @@ def run_task(t, seq, n):
     return "ran" if t["done_fn"]() else "partial"
 
 
-# NOTE: there is deliberately NO in-kernel 27B "preflight". An earlier version
-# loaded the 27B in this notebook kernel to sanity-check sharded generation+NLL;
-# but if that generation hits a CUDA device-side assert (e.g. inf/nan logits
-# from a float16 fallback) it poisons the kernel's CUDA context and kills the
-# whole run. Instead, ALL model work runs in isolated subprocesses (the src/
-# scripts), so a 27B failure is contained: the task is recorded as failed/oom
-# and Tier 1 + the 2B/9B curve still ship. Sharded generation AND per-token NLL
-# are exercised for real by the subprocess `gen:` and `ppl:` tasks for the 27B.
+# NOTE: no model is ever loaded in this notebook kernel. All model work runs in
+# isolated subprocesses (the src/ scripts), so a per-model failure (OOM, a bad
+# download, a CUDA assert) is contained — the task is recorded as failed/oom and
+# the other judges still complete — instead of poisoning the kernel's CUDA
+# context and killing the whole run.
 
 
 # ------------------------------- run loop -----------------------------------
@@ -260,7 +247,7 @@ save_state()
 
 if HAVE_GPU and not FOUR_BIT_OK and not DRY_RUN:
     print(f"{clock()} [4bit] GPU present but 4-bit NF4 unavailable -> GPU tasks will be "
-          "SKIPPED (float16 would break comparability and not fit 27B). "
+          "SKIPPED (float16 would break comparability with the paper). "
           "Stats/outputs still run on whatever judgments already exist.")
 
 seq = 0

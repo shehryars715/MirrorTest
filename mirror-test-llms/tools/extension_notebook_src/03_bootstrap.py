@@ -21,13 +21,13 @@ def _sh(cmd):
 
 
 # ---- 1. pip: refresh ONLY the fragile bits, never pin torch ----------------
-# The earlier version pinned the whole stack (bitsandbytes==0.43.3, ...). On
+# An earlier version pinned the whole stack (bitsandbytes==0.43.3, ...). On
 # Kaggle that broke the bitsandbytes<->torch CUDA binding, so `import
-# bitsandbytes` failed and utils fell back to float16 — which does NOT fit
-# gemma-2-27b (it offloaded to disk and produced inf/nan logits). Fix: leave
-# Kaggle's working torch alone and only (re)fresh bitsandbytes / transformers /
-# scikit-learn when needed. datasets + sentence-transformers are NOT installed
-# (the extension never builds prompts or paraphrases).
+# bitsandbytes` failed and utils silently fell back to float16 (non-comparable
+# to the paper's 4-bit judges, and it triggered an inf/nan generation crash).
+# Fix: leave Kaggle's working torch alone and only (re)fresh bitsandbytes /
+# transformers / scikit-learn when needed. datasets + sentence-transformers are
+# NOT installed (the extension never builds prompts or paraphrases).
 def _imports(code: str) -> bool:
     return subprocess.run([sys.executable, "-c", code],
                           capture_output=True, text=True).returncode == 0
@@ -119,7 +119,7 @@ try:                                     # big weight cache off the 20 GB workin
     print(f"[hf] weight cache: {HF_CACHE_DIR}")
 except OSError:
     print(f"[hf] {HF_CACHE_DIR} not writable; using default ~/.cache/huggingface "
-          "(fine for <=9B; gemma-2-27b-it ~54GB may need more room)")
+          "(fine for the <=9B Tier-1 judges)")
 os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "0")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
@@ -216,9 +216,9 @@ for d in utils.DOMAINS:
         report["ok"].append(f"prompts/{d}.jsonl")
 
 N_TARGET = CFG["prompt_filters"]["n_per_domain"]
-# Foil text that must ALREADY exist (never regenerated): every LLM foil in the
-# pool, all domains, at least N_TARGET s1 records.
-need_s1 = set(FOIL_POOL_LLM) | {j["key"] for j in NEW_JUDGES if not j["needs_s1"]}
+# Text that must ALREADY exist (never regenerated): every LLM foil in the pool
+# AND every new judge (all are promoted foils), all domains, >= N_TARGET s1 recs.
+need_s1 = set(FOIL_POOL_LLM) | {j["key"] for j in NEW_JUDGES}
 for key in sorted(need_s1):
     for d in utils.DOMAINS:
         f = WORK / "data" / "generations" / f"{key}__{d}.jsonl"
@@ -244,9 +244,9 @@ if report["missing"] or report["checksum_bad"]:
         "proceed (regenerating them would break comparability with the paper). "
         "Attach the correct repo Dataset and rerun.")
 if not qwen_judg:
-    print("    [warn] no Qwen judgments found — the extension will still run, but "
-          "scale_curves.png will show only the Gemma-2 curve and Holm will cover "
-          "the new cells only.")
+    print("    [warn] no Qwen judgments found — the extension will still run, but the "
+          "dissociation figure/tables will cover the new judges only, and Holm will "
+          "cover the new cells only.")
 
 # ---- 7. write the patched config (adds new judges; foils=[human]) ----------
 # WHY foils=[human]: model_index() lets later groups shadow earlier ones, so a
@@ -259,7 +259,7 @@ import copy, yaml                                          # noqa: E402
 orig_foils = {m["key"]: m for m in CFG["foils"]}
 drift = []
 for j in NEW_JUDGES:
-    if not j["needs_s1"] and j["key"] in orig_foils:
+    if j["key"] in orig_foils:          # all new judges are promoted foils
         want = orig_foils[j["key"]].get("revision")
         if want and j["revision"] and want != j["revision"]:
             drift.append((j["key"], j["revision"], want))
@@ -273,8 +273,6 @@ patched = copy.deepcopy(CFG)
 patched.pop("_config_path", None)
 existing_judge_keys = {m["key"] for m in patched["judges"]}
 for j in NEW_JUDGES:
-    if j["key"] == "gemma-2-27b-it" and not ENABLE_27B:
-        continue
     if j["key"] in existing_judge_keys:
         continue
     patched["judges"].append({"key": j["key"], "hf_id": j["hf_id"],
@@ -297,7 +295,7 @@ try:
             p = torch.cuda.get_device_properties(i)
             print(f"[gpu] cuda:{i} {p.name} ({p.total_memory/2**30:.1f} GB)")
         if torch.cuda.device_count() >= 2:
-            print("[gpu] 2 GPUs present -> gemma-2-27b-it can shard across both.")
+            print("[gpu] 2 GPUs present (each Tier-1 judge fits on one T4 in 4-bit).")
     else:
         print("[gpu] no CUDA visible (Settings -> Accelerator -> GPU T4 x2).")
     torch.manual_seed(CFG["seed"])
@@ -314,7 +312,7 @@ except Exception:
 #      never initialises a CUDA context that a device-side assert could poison).
 #      The study REQUIRES 4-bit for comparability with the paper; if it is not
 #      available we SKIP GPU work rather than silently run in float16 (which is
-#      what produced the gemma-2-27b inf/nan crash).
+#      non-comparable and, on the earlier run, triggered an inf/nan crash).
 FOUR_BIT_OK = False
 if HAVE_GPU and not LOCAL_TEST:
     chk = subprocess.run(
@@ -332,7 +330,7 @@ if HAVE_GPU and not LOCAL_TEST:
         print("[4bit] *** bitsandbytes 4-bit UNAVAILABLE ***\n"
               f"       {(chk.stderr or chk.stdout).strip()[:300]}\n"
               "       GPU tasks will be SKIPPED (running in float16 would break "
-              "comparability with the paper AND not fit gemma-2-27b). Fix: make "
+              "comparability with the paper's 4-bit judges). Fix: make "
               "`import bitsandbytes` succeed on this image, then rerun.")
 
 HAVE_HF_TOKEN = bool(os.environ.get("HF_TOKEN"))

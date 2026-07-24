@@ -55,15 +55,16 @@ for key in new_keys:
             elif r.get("sample") == "s2":
                 s2 += 1
             rev = rev or r.get("revision")
-    is_reuse = not next(j["needs_s1"] for j in NEW_JUDGES if j["key"] == key)
-    tag = "s1 REUSED (frozen), s2 generated" if is_reuse else "s1+s2 generated"
-    out(f"    {key:<26} s1={s1:<4} s2={s2:<4} [{tag}]")
+    # every Tier-1 judge is a promoted foil: its s1 is the frozen foil text, only s2 is new
+    out(f"    {key:<26} s1={s1:<4} s2={s2:<4} [s1 REUSED (frozen), s2 generated]")
     out(f"        resolved revision: {rev or '(not generated yet)'}")
 out("    reused unchanged: all Qwen2.5 generations/pairs/judgments; all foil s1 text.")
 
-# ---- revisions to pin for camera-ready ------------------------------------
-out("\n[pin these revisions in configs/models.yaml for camera-ready]")
-for key in ("gemma-2-2b-it", "gemma-2-27b-it"):
+# ---- model revisions used (all pinned; nothing new to pin) ----------------
+# Every Tier-1 judge is a promoted foil, so it reuses the revision already
+# pinned in the frozen configs/models.yaml — there is nothing new to pin.
+out("\n[model revisions used (all reused from the frozen config)]")
+for key in [j["key"] for j in NEW_JUDGES]:
     rev = None
     for d in utils.DOMAINS:
         recs = utils.read_jsonl(utils.GENERATIONS_DIR / f"{key}__{d}.jsonl")
@@ -71,16 +72,6 @@ for key in ("gemma-2-2b-it", "gemma-2-27b-it"):
             rev = recs[0].get("revision")
             break
     out(f"    {key}: {rev or '(not generated this session)'}")
-# 27B sharded verification: proven for real by the subprocess ppl task, which
-# computes per-token NLL under the sharded model. Report a finite sample.
-_ppl27 = utils.read_jsonl(utils.BASELINES_DIR / "ppl__gemma-2-27b-it.jsonl")
-_fin = [r for r in _ppl27 if isinstance(r.get("nll_self"), (int, float))
-        and r["nll_self"] == r["nll_self"]]
-if _fin:
-    out(f"\n[27B sharded check] per-token NLL computed on {len(_fin)} pairs under the "
-        f"sharded model (e.g. nll_self={_fin[0]['nll_self']}); generation+NLL work sharded.")
-elif ENABLE_27B:
-    out("\n[27B sharded check] no 27B perplexity rows yet (27B not completed this session).")
 
 # ---- statistics provenance + power ----------------------------------------
 out("\n[statistics]")
@@ -124,7 +115,7 @@ if disso:
 
 # ---- outputs written -------------------------------------------------------
 out("\n[outputs in /kaggle/working/]")
-for rel in ("extended_table1.csv", "scale_curves.png",
+for rel in ("extended_table1.csv", "dissociation.png",
             "extended_outputs/dissociation_summary.csv",
             "extended_outputs/extended_table1.csv", "extended_outputs/raw"):
     p = WORK / rel
@@ -154,7 +145,6 @@ print("  * Resume: if any 'paused/deferred/skipped' tasks remain, Save Version, 
 print("    fresh session, attach THIS run's saved output as a Dataset, and Run All — the")
 print("    repo re-clones automatically and every completed unit is skipped.")
 print("  * Persist results: 'Save Version' preserves /kaggle/working (extended tables,")
-print("    scale_curves.png, raw judgments, checkpoints).")
+print("    dissociation.png, raw judgments, checkpoints).")
 print("  * If the clone failed: confirm the repo is pushed & public at REPO_GIT_URL with")
-print("    Internet ON (or add a GITHUB_TOKEN secret / attach the repo as a Dataset), and")
-print("    that the push included the src/utils.py MIRROR_MAX_MEMORY change (27B needs it).")
+print("    Internet ON (or add a GITHUB_TOKEN secret / attach the repo as a Dataset).")
