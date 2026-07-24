@@ -126,15 +126,13 @@ def foils_for(judge_key: str) -> list:
     return foils + [HUMAN_FOIL]
 
 
-# ---- Pinned pip environment (T4-compatible) --------------------------------
-# bitsandbytes 4-bit NF4 with float16 compute (T4 is Turing: no bf16). These
-# pins are known-good on Kaggle's CUDA 12 image; loosen only if Kaggle's base
-# image moves under you.
-PIP_PACKAGES = [
-    "transformers==4.44.2", "accelerate==0.34.2", "bitsandbytes==0.43.3",
-    "datasets==2.21.0", "sentence-transformers==3.0.1", "scikit-learn==1.5.1",
-    "pyyaml==6.0.2", "matplotlib==3.9.2",
-]
+# ---- pip environment (handled in the bootstrap cell) -----------------------
+# 4-bit NF4 needs a CUDA-matching bitsandbytes (float16 compute; T4 is Turing,
+# no bf16). We deliberately do NOT pin the whole stack (esp. torch): pinning it
+# is what broke the bitsandbytes<->torch binding on Kaggle and silently fell
+# back to float16, which does not fit gemma-2-27b. The bootstrap only refreshes
+# the fragile pieces (bitsandbytes / transformers>=4.44 / scikit-learn) when
+# needed, then VERIFIES 4-bit works and refuses to run in float16.
 
 if not (0 < len(NEW_JUDGES) == len({j["key"] for j in NEW_JUDGES})):
     raise ValueError("NEW_JUDGES keys must be unique and non-empty")

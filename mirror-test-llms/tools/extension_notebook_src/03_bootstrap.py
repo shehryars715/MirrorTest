@@ -20,13 +20,36 @@ def _sh(cmd):
     subprocess.run(cmd, check=True)
 
 
-# ---- 1. pip (pinned; skipped in LOCAL_TEST) --------------------------------
-if not LOCAL_TEST:
+# ---- 1. pip: refresh ONLY the fragile bits, never pin torch ----------------
+# The earlier version pinned the whole stack (bitsandbytes==0.43.3, ...). On
+# Kaggle that broke the bitsandbytes<->torch CUDA binding, so `import
+# bitsandbytes` failed and utils fell back to float16 — which does NOT fit
+# gemma-2-27b (it offloaded to disk and produced inf/nan logits). Fix: leave
+# Kaggle's working torch alone and only (re)fresh bitsandbytes / transformers /
+# scikit-learn when needed. datasets + sentence-transformers are NOT installed
+# (the extension never builds prompts or paraphrases).
+def _imports(code: str) -> bool:
+    return subprocess.run([sys.executable, "-c", code],
+                          capture_output=True, text=True).returncode == 0
+
+
+def _pip(*pkgs):
     try:
-        _sh([sys.executable, "-m", "pip", "-q", "install", "-U", *PIP_PACKAGES])
+        _sh([sys.executable, "-m", "pip", "-q", "install", "-U", *pkgs])
     except subprocess.CalledProcessError as e:
-        print(f"[pip] WARNING: pinned install returned {e.returncode}; "
-              "continuing with whatever is already present.")
+        print(f"[pip] WARNING: install {pkgs} returned {e.returncode}; continuing.")
+
+
+if not LOCAL_TEST:
+    if not _imports("import bitsandbytes"):
+        print("[pip] bitsandbytes not importable -> installing a CUDA-matching build")
+        _pip("bitsandbytes")            # unpinned: pip picks the build for this torch/CUDA
+    # gemma-2 needs transformers >= 4.44; only upgrade if Kaggle's is older
+    if not _imports("import transformers as t,sys;v=t.__version__.split('.');"
+                    "sys.exit(0 if (int(v[0]),int(v[1]))>=(4,44) else 1)"):
+        _pip("transformers>=4.44,<5", "accelerate>=0.33")
+    if not _imports("import sklearn"):   # stylometry baseline
+        _pip("scikit-learn>=1.3")
 
 # ---- 2. obtain the repo: override / attached dataset -> git clone ----------
 # Upload-and-run: by default we CLONE the pushed repo (code + frozen data +
@@ -286,6 +309,31 @@ try:
     import numpy as _np; _np.random.seed(CFG["seed"])       # noqa: E402
 except Exception:
     pass
+
+# ---- 8b. verify 4-bit NF4 actually works (in a SUBPROCESS, so the kernel
+#      never initialises a CUDA context that a device-side assert could poison).
+#      The study REQUIRES 4-bit for comparability with the paper; if it is not
+#      available we SKIP GPU work rather than silently run in float16 (which is
+#      what produced the gemma-2-27b inf/nan crash).
+FOUR_BIT_OK = False
+if HAVE_GPU and not LOCAL_TEST:
+    chk = subprocess.run(
+        [sys.executable, "-c",
+         "import torch,bitsandbytes as b;from transformers import BitsAndBytesConfig;"
+         "assert torch.cuda.is_available();"
+         "BitsAndBytesConfig(load_in_4bit=True,bnb_4bit_quant_type='nf4',"
+         "bnb_4bit_use_double_quant=True,bnb_4bit_compute_dtype=torch.float16);"
+         "print('BNB_OK',b.__version__)"],
+        capture_output=True, text=True)
+    FOUR_BIT_OK = chk.returncode == 0 and "BNB_OK" in chk.stdout
+    if FOUR_BIT_OK:
+        print(f"[4bit] bitsandbytes 4-bit NF4 usable ({chk.stdout.strip()})")
+    else:
+        print("[4bit] *** bitsandbytes 4-bit UNAVAILABLE ***\n"
+              f"       {(chk.stderr or chk.stdout).strip()[:300]}\n"
+              "       GPU tasks will be SKIPPED (running in float16 would break "
+              "comparability with the paper AND not fit gemma-2-27b). Fix: make "
+              "`import bitsandbytes` succeed on this image, then rerun.")
 
 HAVE_HF_TOKEN = bool(os.environ.get("HF_TOKEN"))
 print("\n[versions]")

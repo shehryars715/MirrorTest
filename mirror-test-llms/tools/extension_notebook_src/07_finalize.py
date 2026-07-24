@@ -71,9 +71,16 @@ for key in ("gemma-2-2b-it", "gemma-2-27b-it"):
             rev = recs[0].get("revision")
             break
     out(f"    {key}: {rev or '(not generated this session)'}")
-pf = Path(CHECKPOINT_DIR) / "preflight_27b.json"
-if pf.exists():
-    out(f"\n[27B sharded pre-flight] {pf.read_text(encoding='utf-8')}")
+# 27B sharded verification: proven for real by the subprocess ppl task, which
+# computes per-token NLL under the sharded model. Report a finite sample.
+_ppl27 = utils.read_jsonl(utils.BASELINES_DIR / "ppl__gemma-2-27b-it.jsonl")
+_fin = [r for r in _ppl27 if isinstance(r.get("nll_self"), (int, float))
+        and r["nll_self"] == r["nll_self"]]
+if _fin:
+    out(f"\n[27B sharded check] per-token NLL computed on {len(_fin)} pairs under the "
+        f"sharded model (e.g. nll_self={_fin[0]['nll_self']}); generation+NLL work sharded.")
+elif ENABLE_27B:
+    out("\n[27B sharded check] no 27B perplexity rows yet (27B not completed this session).")
 
 # ---- statistics provenance + power ----------------------------------------
 out("\n[statistics]")

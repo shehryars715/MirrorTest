@@ -230,43 +230,14 @@ def run_task(t, seq, n):
     return "ran" if t["done_fn"]() else "partial"
 
 
-# --------------------- 27B sharded pre-flight (verify NLL) ------------------
-def preflight_27b():
-    marker = Path(CHECKPOINT_DIR) / "preflight_27b.json"
-    if marker.exists():
-        print(f"{clock()} [preflight] 27B already verified: "
-              f"{marker.read_text(encoding='utf-8')[:160]}")
-        return json.loads(marker.read_text(encoding="utf-8"))
-    j = next(x for x in ACTIVE_JUDGES if x["key"] == "gemma-2-27b-it")
-    os.environ["MIRROR_MAX_MEMORY"] = MAX_MEMORY_SHARDED
-    print(f"{clock()} [preflight] loading gemma-2-27b-it sharded "
-          f"({MAX_MEMORY_SHARDED}); first run downloads ~54GB — this is slow.")
-    import torch
-    model, tok = utils.load_model_and_tokenizer(j["hf_id"], j.get("revision"))
-    ctx = utils.build_chat_text(tok, user="Write one short sentence about the sea.",
-                                system=None)
-    gen = utils.sampled_generate(model, tok, ctx, temperature=CFG["generation"]["temperature"],
-                                 top_p=CFG["generation"]["top_p"], max_new_tokens=16,
-                                 seed=CFG["generation"]["seed_base"])
-    nll, ntok = utils.continuation_mean_nll(model, tok, ctx, gen or "The sea is vast.")
-    devs = sorted({str(p.device) for p in model.parameters()})
-    ok = (isinstance(nll, float) and nll == nll and nll != float("inf") and ntok > 0
-          and len(devs) >= 1)
-    res = {"gen_ok": bool(gen), "nll": round(float(nll), 4), "n_tok": int(ntok),
-           "param_devices": devs, "resolved_revision": utils.resolved_revision(model),
-           "verified": bool(ok)}
-    del model
-    gc.collect()
-    try:
-        torch.cuda.empty_cache()
-    except Exception:
-        pass
-    marker.write_text(json.dumps(res, indent=2), encoding="utf-8")
-    print(f"{clock()} [preflight] {res}")
-    if not ok:
-        raise SystemExit("[fatal] 27B sharded generation/NLL sanity FAILED — "
-                         "aborting 27B (set ENABLE_27B=False to ship 2B/9B curve).")
-    return res
+# NOTE: there is deliberately NO in-kernel 27B "preflight". An earlier version
+# loaded the 27B in this notebook kernel to sanity-check sharded generation+NLL;
+# but if that generation hits a CUDA device-side assert (e.g. inf/nan logits
+# from a float16 fallback) it poisons the kernel's CUDA context and kills the
+# whole run. Instead, ALL model work runs in isolated subprocesses (the src/
+# scripts), so a 27B failure is contained: the task is recorded as failed/oom
+# and Tier 1 + the 2B/9B curve still ship. Sharded generation AND per-token NLL
+# are exercised for real by the subprocess `gen:` and `ppl:` tasks for the 27B.
 
 
 # ------------------------------- run loop -----------------------------------
@@ -287,16 +258,10 @@ print(f"\n{clock()} {len(TASKS)-len(runnable)}/{len(TASKS)} already done; "
       f"~{sum(t['est'] for t in runnable)/60:.1f}h of work remains; budget {BUDGET_HOURS}h")
 save_state()
 
-# 27B preflight before any 27B GPU task (once), unless skipping GPU.
-_want_27b = ENABLE_27B and any(t["id"].startswith(("gen:gemma-2-27b", "ppp:gemma-2-27b",
-                               "ipp:gemma-2-27b", "ppl:gemma-2-27b")) for t in runnable)
-if _want_27b and HAVE_GPU and HAVE_HF_TOKEN and not DRY_RUN:
-    try:
-        preflight_27b()
-    except SystemExit as e:
-        print(e)
-        ACTIVE_JUDGES = [x for x in ACTIVE_JUDGES if x["key"] != "gemma-2-27b-it"]
-        runnable = [t for t in runnable if "gemma-2-27b" not in t["id"]]
+if HAVE_GPU and not FOUR_BIT_OK and not DRY_RUN:
+    print(f"{clock()} [4bit] GPU present but 4-bit NF4 unavailable -> GPU tasks will be "
+          "SKIPPED (float16 would break comparability and not fit 27B). "
+          "Stats/outputs still run on whatever judgments already exist.")
 
 seq = 0
 for t in runnable:
@@ -311,6 +276,9 @@ for t in runnable:
     elif t["gpu"] and not HAVE_GPU:
         st.update(status="skipped", note="no GPU")
         print(f"{clock()} [skip] {t['id']}: no GPU this session")
+    elif t["gpu"] and not FOUR_BIT_OK:
+        st.update(status="skipped", note="4-bit NF4 unavailable (refusing float16)")
+        print(f"{clock()} [skip] {t['id']}: 4-bit NF4 unavailable")
     elif t["gated"] and not HAVE_HF_TOKEN:
         st.update(status="skipped", note="needs HF_TOKEN + accepted license")
         print(f"{clock()} [skip] {t['id']}: needs HF_TOKEN secret + license")
